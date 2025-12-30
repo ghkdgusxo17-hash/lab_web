@@ -1,0 +1,474 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("REAL_DATABASE_URL")
+  directUrl = env("REAL_DIRECT_URL")
+}
+
+// Note: SQLite does not support enums, so we use String fields instead.
+// Valid values for role: PROFESSOR, PHD, MS, BS, ALUMNI
+// Valid values for postType: NOTICE, FREE
+// Valid values for resourceType: EQUIPMENT, ROOM
+// Valid values for reservationStatus: PENDING, APPROVED, REJECTED, CANCELLED
+
+model User {
+  id                String        @id @default(cuid())
+  name              String?
+  email             String?       @unique
+  emailVerified     DateTime?
+  image             String?
+  password          String?
+  role              String        @default("BS")
+  isAdmin           Boolean       @default(false)
+  isApproved        Boolean       @default(false)  // false = Guest, true = Member
+  bio               String?
+  researchInterests String?       // JSON array stored as string
+  joinedAt          DateTime      @default(now())
+  graduatedAt       DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  accounts          Account[]
+  sessions          Session[]
+  posts             Post[]
+  comments          Comment[]
+  reservations      Reservation[]
+  events            CalendarEvent[]
+  materials         Material[]
+  tasks             Task[]         @relation("TaskAuthor")
+  taskComments      TaskComment[]  @relation("TaskCommentAuthor")
+  projectMembers    ProjectMember[]
+  workspaceMembers  WorkspaceMember[]
+  workspaceResources WorkspaceResource[] @relation("WorkspaceResourceUploader")
+  
+  // Lab Resource Management relations
+  inventoryTransactions InventoryTransaction[] @relation("InventoryPerformer")
+  purchaseRequests      PurchaseRequest[]      @relation("PurchaseRequester")
+  purchaseApprovals     PurchaseRequest[]      @relation("PurchaseApprover")
+  ledgerAccounts        LedgerAccount[]        @relation("LedgerRecorder")
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Post {
+  id          String       @id @default(cuid())
+  title       String
+  content     String
+  type        String       @default("FREE") // NOTICE, FREE, SEMINAR
+  isPinned    Boolean      @default(false)
+  authorId    String
+  author      User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments    Comment[]
+  attachments Attachment[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  filename  String
+  url       String
+  size      Int
+  mimeType  String
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model Resource {
+  id           String       @id @default(cuid())
+  name         String
+  description  String?
+  type         String       @default("EQUIPMENT")
+  image        String?
+  isAvailable  Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  reservations Reservation[]
+}
+
+model Reservation {
+  id         String   @id @default(cuid())
+  resourceId String
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startTime  DateTime
+  endTime    DateTime
+  status     String   @default("PENDING")
+  purpose    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model CalendarEvent {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  isAllDay    Boolean  @default(false)
+  category    String   @default("OTHER") // SEMINAR, MEETING, DEADLINE, TRIP, VACATION, OTHER
+  color       String?
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Announcement {
+  id        String    @id @default(cuid())
+  title     String
+  content   String
+  isActive  Boolean   @default(true)
+  priority  Int       @default(0)
+  startDate DateTime  @default(now())
+  endDate   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Material {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  category    String   @default("OTHER") // PAPER, PPT, DATA, LAB_MEETING, OTHER
+  filename    String
+  url         String
+  size        Int
+  mimeType    String
+  uploaderId  String
+  uploader    User     @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ============ Task Management ============
+
+model Project {
+  id          String          @id @default(cuid())
+  name        String
+  description String?
+  isActive    Boolean         @default(true)
+  tasks       Task[]
+  members     ProjectMember[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, userId])
+}
+
+model Task {
+  id          String           @id @default(cuid())
+  title       String
+  content     String
+  category    String           @default("OTHER") // PROJECT, PAPER, EXPERIMENT, OTHER
+  status      String           @default("IN_PROGRESS") // IN_PROGRESS, QUESTION, ANSWERED, COMPLETED
+  projectId   String?
+  project     Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  authorId    String
+  author      User             @relation("TaskAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  comments    TaskComment[]
+  attachments TaskAttachment[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  content   String
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation("TaskCommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model TaskAttachment {
+  id        String   @id @default(cuid())
+  filename  String
+  url       String
+  size      Int
+  mimeType  String?
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+// ============ Workspace (협업공간) ============
+
+model Workspace {
+  id          String              @id @default(cuid())
+  name        String
+  description String?
+  members     WorkspaceMember[]
+  sections    WorkspaceSection[]
+  resources   WorkspaceResource[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
+model WorkspaceMember {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isLeader    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  @@unique([workspaceId, userId])
+}
+
+model WorkspaceSection {
+  id          String              @id @default(cuid())
+  workspaceId String
+  workspace   Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  order       Int                 @default(0)
+  resources   WorkspaceResource[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
+model WorkspaceResource {
+  id          String            @id @default(cuid())
+  workspaceId String
+  workspace   Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  sectionId   String?
+  section     WorkspaceSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  title       String
+  description String?
+  type        String            @default("FILE") // FILE, LINK
+  filename    String?           // For FILE type
+  url         String            // For LINK or file path
+  size        Int?              // For FILE type
+  mimeType    String?           // For FILE type
+  uploaderId  String
+  uploader    User              @relation("WorkspaceResourceUploader", fields: [uploaderId], references: [id], onDelete: Cascade)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+// ============ Contact Inquiry (문의하기) ============
+
+model ContactInquiry {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// ============ Publications (논문 및 특허) ============
+// Valid values for publicationType: JOURNAL, CONFERENCE, PATENT, BOOK
+
+model Publication {
+  id          String   @id @default(cuid())
+  type        String   // JOURNAL, CONFERENCE, PATENT, BOOK
+  title       String
+  authors     String   // Comma-separated author names
+  year        Int
+  journal     String?  // For journal/conference papers
+  volume      String?  // Volume number
+  pages       String?  // Page range
+  doi         String?  // Digital Object Identifier
+  patentNo    String?  // Patent number (for patents)
+  link        String?  // External link to full paper/patent
+  isHighlight Boolean  @default(false)  // Featured publication
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ============ Site Settings (사이트 설정) ============
+
+model SiteSettings {
+  id              String   @id @default("main")
+  videoEnabled    Boolean  @default(false)  // Enable video hover on research cards
+  updatedAt       DateTime @updatedAt
+}
+
+// ============ Professor Info (교수 정보) ============
+
+model ProfessorInfo {
+  id              String   @id @default("main")
+  
+  // 기본 정보
+  name            String   @default("교수명")
+  position        String   @default("부교수")
+  department      String   @default("생명화학공학과")
+  university      String   @default("강원대학교")
+  address         String   @default("")  // 주소
+  profileImage    String?  // Supabase URL
+  
+  // 연락처
+  email           String   @default("")
+  phone           String   @default("")
+  fax             String   @default("")  // 팩스
+  labLocation     String   @default("")
+  
+  // 학력 (JSON array) - [{ degree, school, major, year, thesis, advisor }]
+  education       String   @default("[]")
+  
+  // 경력 (JSON array) - [{ position, organization, period, description }]
+  career          String   @default("[]")
+  
+  // 학술 활동 (JSON array) - [{ category, items: string[] }]
+  academicActivities String @default("[]")
+  
+  // 수상 및 명예 (JSON array) - [{ title, year }]
+  awards          String   @default("[]")
+  
+  // 연구 분야
+  researchKeywords    String   @default("[]")  // JSON array of strings
+  researchDescription String   @default("")
+  
+  updatedAt       DateTime @updatedAt
+}
+
+// ============ Lab Resource Management (연구실 자원관리) ============
+
+// 시약/소모품 (Inventory Item)
+model InventoryItem {
+  id            String              @id @default(cuid())
+  name          String              // 품명
+  category      String              @default("OTHER")  // REAGENT, CONSUMABLE, EQUIPMENT, OTHER
+  quantity      Int                 @default(0)        // 현재 수량
+  unit          String              @default("개")     // 단위 (개, ml, g, 박스 등)
+  minQuantity   Int                 @default(0)        // 최소 재고량 (이하시 알림)
+  location      String?             // 보관 위치
+  expiryDate    DateTime?           // 유효기간
+  manufacturer  String?             // 제조사
+  catalogNo     String?             // 카탈로그 번호
+  purchaseUrl   String?             // 구매 링크
+  msdsUrl       String?             // MSDS 파일 URL
+  notes         String?             // 비고
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  
+  transactions  InventoryTransaction[]
+}
+
+// 입출고 기록
+model InventoryTransaction {
+  id            String         @id @default(cuid())
+  itemId        String
+  item          InventoryItem  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  type          String         // IN (입고), OUT (출고)
+  quantity      Int            // 수량 (양수)
+  reason        String?        // 사유 (구매, 사용, 폐기 등)
+  performedById String
+  performedBy   User           @relation("InventoryPerformer", fields: [performedById], references: [id])
+  createdAt     DateTime       @default(now())
+}
+
+// 구매 요청
+model PurchaseRequest {
+  id            String              @id @default(cuid())
+  title         String              // 제목
+  description   String?             // 설명
+  category      String              @default("OTHER")  // REAGENT, EQUIPMENT, OFFICE, TRAVEL, OTHER
+  priority      String              @default("NORMAL") // URGENT, NORMAL
+  estimatedCost Int                 // 예상 금액 (원)
+  actualCost    Int?                // 실제 금액 (승인 후)
+  status        String              @default("PENDING") // PENDING, APPROVED, REJECTED, PURCHASED
+  quotationUrl  String?             // 견적서 URL
+  receiptUrl    String?             // 영수증 URL
+  rejectReason  String?             // 반려 사유
+  requesterId   String
+  requester     User                @relation("PurchaseRequester", fields: [requesterId], references: [id])
+  approverId    String?
+  approver      User?               @relation("PurchaseApprover", fields: [approverId], references: [id])
+  approvedAt    DateTime?
+  purchasedAt   DateTime?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  items         PurchaseItem[]
+}
+
+// 구매 요청 품목
+model PurchaseItem {
+  id            String          @id @default(cuid())
+  requestId     String
+  request       PurchaseRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  name          String          // 품명
+  quantity      Int             // 수량
+  unitPrice     Int?            // 단가
+  url           String?         // 구매 링크
+}
+
+// 장부 계좌 (항목별 잔액)
+model LedgerAccount {
+  id            String   @id @default(cuid())
+  section       String   @default("기본") // 섹션 (예: 연구비, 인건비, 기자재)
+  name          String   // 항목명
+  balance       Int      @default(0)  // 현재 잔액 (원)
+  description   String?  // 설명
+  recordedById  String
+  recordedBy    User     @relation("LedgerRecorder", fields: [recordedById], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
