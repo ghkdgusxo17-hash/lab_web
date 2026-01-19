@@ -5,7 +5,7 @@ const nextConfig = {
     // Increase body size limit for server actions (default is 1MB)
     experimental: {
         serverActions: {
-            bodySizeLimit: '30mb',
+            bodySizeLimit: '1gb',
         },
     },
     images: {

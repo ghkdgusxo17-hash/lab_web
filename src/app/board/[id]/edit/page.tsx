@@ -47,7 +47,9 @@ export default async function EditPage({ params }: EditPageProps) {
                         initialData={{
                             title: post.title,
                             content: post.content,
-                            type: post.type
+                            type: post.type,
+                            attachments: post.attachments,
+                            poll: post.poll
                         }}
                     />
                 </div>

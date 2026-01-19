@@ -52,6 +52,10 @@ model User {
   purchaseRequests      PurchaseRequest[]      @relation("PurchaseRequester")
   purchaseApprovals     PurchaseRequest[]      @relation("PurchaseApprover")
   ledgerAccounts        LedgerAccount[]        @relation("LedgerRecorder")
+
+  // Post interactions
+  postLikes             PostLike[]
+  pollVotes             PollVote[]
 }
 
 model Account {
@@ -99,6 +103,8 @@ model Post {
   author      User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
   comments    Comment[]
   attachments Attachment[]
+  likes       PostLike[]
+  poll        Poll?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 }
@@ -471,4 +477,55 @@ model LedgerAccount {
   recordedBy    User     @relation("LedgerRecorder", fields: [recordedById], references: [id])
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+// ============ Post Interactions (게시글 상호작용) ============
+
+// 게시글 추천 (좋아요)
+model PostLike {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+}
+
+// 투표
+model Poll {
+  id            String       @id @default(cuid())
+  postId        String       @unique
+  post          Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  question      String       // 투표 질문
+  isMultiple    Boolean      @default(false)  // 복수 선택 허용 여부
+  isAnonymous   Boolean      @default(false)  // 익명 투표 여부
+  endsAt        DateTime?    // 투표 마감일 (null이면 무기한)
+  options       PollOption[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+// 투표 옵션
+model PollOption {
+  id        String     @id @default(cuid())
+  pollId    String
+  poll      Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  text      String     // 옵션 텍스트
+  order     Int        @default(0)  // 표시 순서
+  votes     PollVote[]
+  createdAt DateTime   @default(now())
+}
+
+// 투표 기록
+model PollVote {
+  id        String     @id @default(cuid())
+  optionId  String
+  option    PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+
+  @@unique([optionId, userId])
 }

@@ -29,7 +29,7 @@ export async function getPosts(type?: string) {
     return posts
 }
 
-// Get single post with comments and attachments
+// Get single post with comments, attachments, and poll
 export async function getPost(id: string) {
     const post = await prisma.post.findUnique({
         where: { id },
@@ -53,7 +53,14 @@ export async function getPost(id: string) {
                 },
                 orderBy: { createdAt: 'asc' }
             },
-            attachments: true
+            attachments: true,
+            poll: {
+                include: {
+                    options: {
+                        orderBy: { order: 'asc' }
+                    }
+                }
+            }
         }
     })
 
@@ -70,7 +77,7 @@ export async function createPost(formData: FormData) {
 
     const title = formData.get("title") as string
     const content = formData.get("content") as string
-    const type = formData.get("type") as string
+    const type = (formData.get("type") as string) || "FREE"
 
     if (!title || !content) {
         return { error: "제목과 내용을 입력해주세요." }
@@ -96,6 +103,23 @@ export async function createPost(formData: FormData) {
         // Ignore parse errors
     }
 
+    // Parse poll data
+    const pollJson = formData.get("poll") as string
+    let pollData: {
+        question: string
+        options: string[]
+        isMultiple: boolean
+        isAnonymous: boolean
+        endsAt?: string
+    } | null = null
+    try {
+        if (pollJson) {
+            pollData = JSON.parse(pollJson)
+        }
+    } catch {
+        // Ignore parse errors
+    }
+
     const userId = session.user.id
 
     const post = await prisma.post.create({
@@ -113,6 +137,20 @@ export async function createPost(formData: FormData) {
                     size: file.size,
                     mimeType: file.mimeType,
                 }))
+            } : undefined,
+            poll: pollData && pollData.options.length >= 2 ? {
+                create: {
+                    question: pollData.question,
+                    isMultiple: pollData.isMultiple,
+                    isAnonymous: pollData.isAnonymous,
+                    endsAt: pollData.endsAt ? new Date(pollData.endsAt) : null,
+                    options: {
+                        create: pollData.options.map((text, index) => ({
+                            text,
+                            order: index
+                        }))
+                    }
+                }
             } : undefined
         }
     })
@@ -130,7 +168,8 @@ export async function updatePost(id: string, formData: FormData) {
     }
 
     const post = await prisma.post.findUnique({
-        where: { id }
+        where: { id },
+        include: { poll: true }
     })
 
     if (!post) {
@@ -149,6 +188,101 @@ export async function updatePost(id: string, formData: FormData) {
         return { error: "제목과 내용을 입력해주세요." }
     }
 
+    // Parse removed attachment IDs
+    const removedAttachmentIdsJson = formData.get("removedAttachmentIds") as string
+    let removedAttachmentIds: string[] = []
+    try {
+        if (removedAttachmentIdsJson) {
+            removedAttachmentIds = JSON.parse(removedAttachmentIdsJson)
+        }
+    } catch {
+        // Ignore parse errors
+    }
+
+    // Parse new attachments
+    const newAttachmentsJson = formData.get("newAttachments") as string
+    let newAttachments: { filename: string; url: string; size: number; mimeType: string }[] = []
+    try {
+        if (newAttachmentsJson) {
+            newAttachments = JSON.parse(newAttachmentsJson)
+        }
+    } catch {
+        // Ignore parse errors
+    }
+
+    // Parse poll data
+    const deletePoll = formData.get("deletePoll") === "true"
+    const pollJson = formData.get("poll") as string
+    let pollData: {
+        question: string
+        options: string[]
+        isMultiple: boolean
+        isAnonymous: boolean
+        endsAt?: string
+    } | null = null
+    try {
+        if (pollJson) {
+            pollData = JSON.parse(pollJson)
+        }
+    } catch {
+        // Ignore parse errors
+    }
+
+    // Delete removed attachments
+    if (removedAttachmentIds.length > 0) {
+        await prisma.attachment.deleteMany({
+            where: {
+                id: { in: removedAttachmentIds },
+                postId: id
+            }
+        })
+    }
+
+    // Add new attachments
+    if (newAttachments.length > 0) {
+        await prisma.attachment.createMany({
+            data: newAttachments.map(file => ({
+                filename: file.filename,
+                url: file.url,
+                size: file.size,
+                mimeType: file.mimeType,
+                postId: id
+            }))
+        })
+    }
+
+    // Handle poll updates
+    if (deletePoll && post.poll) {
+        // Delete existing poll (cascade will delete options and votes)
+        await prisma.poll.delete({
+            where: { id: post.poll.id }
+        })
+    } else if (pollData && pollData.options.length >= 2) {
+        if (post.poll) {
+            // Delete existing poll and create new one (to reset votes)
+            await prisma.poll.delete({
+                where: { id: post.poll.id }
+            })
+        }
+        // Create new poll
+        await prisma.poll.create({
+            data: {
+                postId: id,
+                question: pollData.question,
+                isMultiple: pollData.isMultiple,
+                isAnonymous: pollData.isAnonymous,
+                endsAt: pollData.endsAt ? new Date(pollData.endsAt) : null,
+                options: {
+                    create: pollData.options.map((text, index) => ({
+                        text,
+                        order: index
+                    }))
+                }
+            }
+        })
+    }
+
+    // Update post basic info
     await prisma.post.update({
         where: { id },
         data: { title, content }

@@ -1,9 +1,33 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft, Loader2, Paperclip, X, FileText, BarChart3, Plus, Trash2 } from 'lucide-react'
 import { updatePost } from '@/actions/board'
+import { RichTextEditor } from '@/components/editor'
+
+interface Attachment {
+    id: string
+    filename: string
+    url: string
+    size: number
+    mimeType: string
+}
+
+interface PollOption {
+    id: string
+    text: string
+    order: number
+}
+
+interface Poll {
+    id: string
+    question: string
+    isMultiple: boolean
+    isAnonymous: boolean
+    endsAt: string | null
+    options: PollOption[]
+}
 
 interface EditPostFormProps {
     postId: string
@@ -11,12 +35,138 @@ interface EditPostFormProps {
         title: string
         content: string
         type: string
+        attachments: Attachment[]
+        poll: Poll | null
     }
+}
+
+interface UploadedFile {
+    id?: string
+    filename: string
+    url: string
+    size: number
+    mimeType: string
 }
 
 export function EditPostForm({ postId, initialData }: EditPostFormProps) {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
+    const [content, setContent] = useState(initialData.content)
+
+    // Attachments state
+    const [files, setFiles] = useState<UploadedFile[]>(
+        initialData.attachments.map(a => ({
+            id: a.id,
+            filename: a.filename,
+            url: a.url,
+            size: a.size,
+            mimeType: a.mimeType
+        }))
+    )
+    const [removedFileIds, setRemovedFileIds] = useState<string[]>([])
+    const [uploading, setUploading] = useState(false)
+    const fileInputRef = useRef<HTMLInputElement>(null)
+
+    // Poll state
+    const [showPoll, setShowPoll] = useState(!!initialData.poll)
+    const [pollQuestion, setPollQuestion] = useState(initialData.poll?.question || '')
+    const [pollOptions, setPollOptions] = useState<string[]>(
+        initialData.poll?.options.map(o => o.text) || ['', '']
+    )
+    const [pollIsMultiple, setPollIsMultiple] = useState(initialData.poll?.isMultiple || false)
+    const [pollIsAnonymous, setPollIsAnonymous] = useState(initialData.poll?.isAnonymous || false)
+    const [pollEndsAt, setPollEndsAt] = useState(
+        initialData.poll?.endsAt
+            ? new Date(initialData.poll.endsAt).toISOString().slice(0, 16)
+            : ''
+    )
+    const [deletePoll, setDeletePoll] = useState(false)
+
+    async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+        const selectedFiles = e.target.files
+        if (!selectedFiles || selectedFiles.length === 0) return
+
+        setUploading(true)
+        setError('')
+
+        for (const file of Array.from(selectedFiles)) {
+            const formData = new FormData()
+            formData.append('file', file)
+
+            try {
+                const response = await fetch('/api/attachments', {
+                    method: 'POST',
+                    body: formData,
+                })
+
+                if (!response.ok) {
+                    const data = await response.json()
+                    throw new Error(data.error || '업로드 실패')
+                }
+
+                const data = await response.json()
+                setFiles(prev => [...prev, {
+                    filename: file.name,
+                    url: data.url,
+                    size: file.size,
+                    mimeType: file.type,
+                }])
+            } catch (err: any) {
+                setError(err.message || '파일 업로드 실패')
+            }
+        }
+
+        setUploading(false)
+        if (fileInputRef.current) {
+            fileInputRef.current.value = ''
+        }
+    }
+
+    function removeFile(index: number) {
+        const file = files[index]
+        if (file.id) {
+            setRemovedFileIds(prev => [...prev, file.id!])
+        }
+        setFiles(prev => prev.filter((_, i) => i !== index))
+    }
+
+    function formatFileSize(bytes: number) {
+        if (bytes < 1024) return bytes + ' B'
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+    }
+
+    // Poll functions
+    function addPollOption() {
+        if (pollOptions.length < 10) {
+            setPollOptions([...pollOptions, ''])
+        }
+    }
+
+    function removePollOption(index: number) {
+        if (pollOptions.length > 2) {
+            setPollOptions(pollOptions.filter((_, i) => i !== index))
+        }
+    }
+
+    function updatePollOption(index: number, value: string) {
+        const newOptions = [...pollOptions]
+        newOptions[index] = value
+        setPollOptions(newOptions)
+    }
+
+    function handleTogglePoll() {
+        if (showPoll) {
+            // If turning off poll and there was an existing poll, mark for deletion
+            if (initialData.poll) {
+                setDeletePoll(true)
+            }
+            setShowPoll(false)
+        } else {
+            setDeletePoll(false)
+            setShowPoll(true)
+        }
+    }
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
@@ -24,6 +174,30 @@ export function EditPostForm({ postId, initialData }: EditPostFormProps) {
         setLoading(true)
 
         const formData = new FormData(e.currentTarget)
+        formData.set('content', content)
+
+        // Add new attachments (only those without id)
+        const newAttachments = files.filter(f => !f.id)
+        formData.set('newAttachments', JSON.stringify(newAttachments))
+
+        // Add removed attachment ids
+        formData.set('removedAttachmentIds', JSON.stringify(removedFileIds))
+
+        // Add poll data
+        if (deletePoll) {
+            formData.set('deletePoll', 'true')
+        } else if (showPoll && pollQuestion.trim()) {
+            const validOptions = pollOptions.filter(opt => opt.trim())
+            if (validOptions.length >= 2) {
+                formData.set('poll', JSON.stringify({
+                    question: pollQuestion.trim(),
+                    options: validOptions,
+                    isMultiple: pollIsMultiple,
+                    isAnonymous: pollIsAnonymous,
+                    endsAt: pollEndsAt || undefined
+                }))
+            }
+        }
 
         try {
             const result = await updatePost(postId, formData)
@@ -55,7 +229,7 @@ export function EditPostForm({ postId, initialData }: EditPostFormProps) {
                         게시판
                     </label>
                     <span className="text-sm text-slate-600 dark:text-slate-400">
-                        {initialData.type === 'NOTICE' ? '공지사항' : '자유게시판'}
+                        {initialData.type === 'NOTICE' ? '공지사항' : initialData.type === 'SEMINAR' ? '세미나' : '자유게시판'}
                     </span>
                 </div>
 
@@ -75,20 +249,193 @@ export function EditPostForm({ postId, initialData }: EditPostFormProps) {
                     />
                 </div>
 
-                {/* Content */}
-                <div>
-                    <label htmlFor="content" className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                {/* Content - Rich Text Editor */}
+                <div className="mb-6">
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
                         내용
                     </label>
-                    <textarea
-                        id="content"
-                        name="content"
-                        required
-                        rows={15}
-                        defaultValue={initialData.content}
-                        placeholder="내용을 입력하세요"
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    <RichTextEditor
+                        content={content}
+                        onChange={setContent}
+                        placeholder="내용을 입력하세요... (Ctrl+V로 이미지 붙여넣기 가능)"
+                        minHeight="300px"
                     />
+                </div>
+
+                {/* File attachments */}
+                <div className="mb-6">
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                        첨부파일
+                    </label>
+
+                    {files.length > 0 && (
+                        <div className="mb-3 space-y-2">
+                            {files.map((file, index) => (
+                                <div key={file.id || index} className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                                    <FileText className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                                            {file.filename}
+                                        </p>
+                                        <p className="text-xs text-slate-500">
+                                            {formatFileSize(file.size)}
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => removeFile(index)}
+                                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        onChange={handleFileUpload}
+                        className="hidden"
+                        accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.hwp,.txt,.zip,.rar,.7z,.jpg,.jpeg,.png,.gif,.mp3,.mp4,.wav,.webm,.ogg,.m4a,.avi,.mov"
+                    />
+                    <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                        className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 transition-colors disabled:opacity-50"
+                    >
+                        {uploading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                            <Paperclip className="w-4 h-4" />
+                        )}
+                        파일 첨부
+                    </button>
+                    <p className="mt-2 text-xs text-slate-500">
+                        PDF, PPT, Word, Excel, HWP, 이미지, 압축파일, 오디오, 비디오 (최대 1GB)
+                    </p>
+                </div>
+
+                {/* Poll */}
+                <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center justify-between mb-4">
+                        <label className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                            <BarChart3 className="w-4 h-4" />
+                            투표
+                        </label>
+                        <button
+                            type="button"
+                            onClick={handleTogglePoll}
+                            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                                showPoll
+                                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                            }`}
+                        >
+                            {showPoll ? '투표 제거' : '투표 추가'}
+                        </button>
+                    </div>
+
+                    {showPoll && (
+                        <div className="space-y-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                            {/* Poll Question */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                    질문
+                                </label>
+                                <input
+                                    type="text"
+                                    value={pollQuestion}
+                                    onChange={(e) => setPollQuestion(e.target.value)}
+                                    placeholder="투표 질문을 입력하세요"
+                                    className="w-full px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+
+                            {/* Poll Options */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                    옵션 (최소 2개)
+                                </label>
+                                <div className="space-y-2">
+                                    {pollOptions.map((option, index) => (
+                                        <div key={index} className="flex items-center gap-2">
+                                            <input
+                                                type="text"
+                                                value={option}
+                                                onChange={(e) => updatePollOption(index, e.target.value)}
+                                                placeholder={`옵션 ${index + 1}`}
+                                                className="flex-1 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                            {pollOptions.length > 2 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removePollOption(index)}
+                                                    className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                                {pollOptions.length < 10 && (
+                                    <button
+                                        type="button"
+                                        onClick={addPollOption}
+                                        className="mt-2 inline-flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                        옵션 추가
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Poll Settings */}
+                            <div className="flex flex-wrap gap-4">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={pollIsMultiple}
+                                        onChange={(e) => setPollIsMultiple(e.target.checked)}
+                                        className="w-4 h-4 text-blue-600 rounded"
+                                    />
+                                    <span className="text-sm text-slate-700 dark:text-slate-300">복수 선택 허용</span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={pollIsAnonymous}
+                                        onChange={(e) => setPollIsAnonymous(e.target.checked)}
+                                        className="w-4 h-4 text-blue-600 rounded"
+                                    />
+                                    <span className="text-sm text-slate-700 dark:text-slate-300">익명 투표</span>
+                                </label>
+                            </div>
+
+                            {/* Poll End Date */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                    마감일 (선택)
+                                </label>
+                                <input
+                                    type="datetime-local"
+                                    value={pollEndsAt}
+                                    onChange={(e) => setPollEndsAt(e.target.value)}
+                                    className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+
+                            {initialData.poll && (
+                                <p className="text-xs text-amber-600 dark:text-amber-400">
+                                    ⚠️ 투표를 수정하면 기존 투표 결과가 초기화됩니다.
+                                </p>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -103,7 +450,7 @@ export function EditPostForm({ postId, initialData }: EditPostFormProps) {
                 </Link>
                 <button
                     type="submit"
-                    disabled={loading}
+                    disabled={loading || uploading}
                     className="px-8 py-3 bg-blue-600 text-white font-bold rounded-full hover:bg-blue-700 transition-colors disabled:opacity-50"
                 >
                     {loading ? (

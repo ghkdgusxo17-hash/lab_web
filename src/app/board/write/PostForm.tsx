@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2, Paperclip, X, FileText } from 'lucide-react'
+import { ArrowLeft, Loader2, Paperclip, X, FileText, BarChart3, Plus, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { createPost } from '@/actions/board'
 import { RichTextEditor } from '@/components/editor'
@@ -33,6 +33,14 @@ export function PostForm({ isAdmin, initialData }: PostFormProps) {
     const [content, setContent] = useState(initialData?.content || '')
     const fileInputRef = useRef<HTMLInputElement>(null)
 
+    // Poll states
+    const [showPoll, setShowPoll] = useState(false)
+    const [pollQuestion, setPollQuestion] = useState('')
+    const [pollOptions, setPollOptions] = useState(['', ''])
+    const [pollIsMultiple, setPollIsMultiple] = useState(false)
+    const [pollIsAnonymous, setPollIsAnonymous] = useState(false)
+    const [pollEndsAt, setPollEndsAt] = useState('')
+
     async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
         const selectedFiles = e.target.files
         if (!selectedFiles || selectedFiles.length === 0) return
@@ -45,7 +53,7 @@ export function PostForm({ isAdmin, initialData }: PostFormProps) {
             formData.append('file', file)
 
             try {
-                const response = await fetch('/api/upload', {
+                const response = await fetch('/api/attachments', {
                     method: 'POST',
                     body: formData,
                 })
@@ -83,6 +91,25 @@ export function PostForm({ isAdmin, initialData }: PostFormProps) {
         return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
     }
 
+    // Poll functions
+    function addPollOption() {
+        if (pollOptions.length < 10) {
+            setPollOptions([...pollOptions, ''])
+        }
+    }
+
+    function removePollOption(index: number) {
+        if (pollOptions.length > 2) {
+            setPollOptions(pollOptions.filter((_, i) => i !== index))
+        }
+    }
+
+    function updatePollOption(index: number, value: string) {
+        const newOptions = [...pollOptions]
+        newOptions[index] = value
+        setPollOptions(newOptions)
+    }
+
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
         setError('')
@@ -91,6 +118,20 @@ export function PostForm({ isAdmin, initialData }: PostFormProps) {
         const formData = new FormData(e.currentTarget)
         formData.set('content', content)
         formData.set('attachments', JSON.stringify(files))
+
+        // Add poll data if enabled
+        if (showPoll && pollQuestion.trim()) {
+            const validOptions = pollOptions.filter(opt => opt.trim())
+            if (validOptions.length >= 2) {
+                formData.set('poll', JSON.stringify({
+                    question: pollQuestion.trim(),
+                    options: validOptions,
+                    isMultiple: pollIsMultiple,
+                    isAnonymous: pollIsAnonymous,
+                    endsAt: pollEndsAt || undefined
+                }))
+            }
+        }
 
         try {
             const result = await createPost(formData)
@@ -223,7 +264,7 @@ export function PostForm({ isAdmin, initialData }: PostFormProps) {
                         multiple
                         onChange={handleFileUpload}
                         className="hidden"
-                        accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.hwp,.txt,.zip,.rar,.7z,.jpg,.jpeg,.png,.gif"
+                        accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.hwp,.txt,.zip,.rar,.7z,.jpg,.jpeg,.png,.gif,.mp3,.mp4,.wav,.webm,.ogg,.m4a,.avi,.mov"
                     />
                     <button
                         type="button"
@@ -239,8 +280,121 @@ export function PostForm({ isAdmin, initialData }: PostFormProps) {
                         파일 첨부
                     </button>
                     <p className="mt-2 text-xs text-slate-500">
-                        PDF, PPT, Word, Excel, HWP, 이미지, 압축파일 (최대 10MB)
+                        PDF, PPT, Word, Excel, HWP, 이미지, 압축파일, 오디오, 비디오 (최대 1GB)
                     </p>
+                </div>
+
+                {/* Poll Creation */}
+                <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center justify-between mb-4">
+                        <label className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                            <BarChart3 className="w-4 h-4" />
+                            투표
+                        </label>
+                        <button
+                            type="button"
+                            onClick={() => setShowPoll(!showPoll)}
+                            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                                showPoll
+                                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                            }`}
+                        >
+                            {showPoll ? '투표 제거' : '투표 추가'}
+                        </button>
+                    </div>
+
+                    {showPoll && (
+                        <div className="space-y-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                            {/* Poll Question */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                    질문
+                                </label>
+                                <input
+                                    type="text"
+                                    value={pollQuestion}
+                                    onChange={(e) => setPollQuestion(e.target.value)}
+                                    placeholder="투표 질문을 입력하세요"
+                                    className="w-full px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+
+                            {/* Poll Options */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                    옵션 (최소 2개)
+                                </label>
+                                <div className="space-y-2">
+                                    {pollOptions.map((option, index) => (
+                                        <div key={index} className="flex items-center gap-2">
+                                            <input
+                                                type="text"
+                                                value={option}
+                                                onChange={(e) => updatePollOption(index, e.target.value)}
+                                                placeholder={`옵션 ${index + 1}`}
+                                                className="flex-1 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                            {pollOptions.length > 2 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removePollOption(index)}
+                                                    className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                                {pollOptions.length < 10 && (
+                                    <button
+                                        type="button"
+                                        onClick={addPollOption}
+                                        className="mt-2 inline-flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                        옵션 추가
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Poll Settings */}
+                            <div className="flex flex-wrap gap-4">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={pollIsMultiple}
+                                        onChange={(e) => setPollIsMultiple(e.target.checked)}
+                                        className="w-4 h-4 text-blue-600 rounded"
+                                    />
+                                    <span className="text-sm text-slate-700 dark:text-slate-300">복수 선택 허용</span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={pollIsAnonymous}
+                                        onChange={(e) => setPollIsAnonymous(e.target.checked)}
+                                        className="w-4 h-4 text-blue-600 rounded"
+                                    />
+                                    <span className="text-sm text-slate-700 dark:text-slate-300">익명 투표</span>
+                                </label>
+                            </div>
+
+                            {/* Poll End Date */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                    마감일 (선택)
+                                </label>
+                                <input
+                                    type="datetime-local"
+                                    value={pollEndsAt}
+                                    onChange={(e) => setPollEndsAt(e.target.value)}
+                                    className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 

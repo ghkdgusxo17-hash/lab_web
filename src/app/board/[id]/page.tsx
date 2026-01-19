@@ -4,10 +4,13 @@ import { notFound } from 'next/navigation'
 import { getPost } from '@/actions/board'
 import { auth } from '@/auth'
 import { Navbar } from '@/components/layout'
-import { ArrowLeft, Clock, User, Pin, Megaphone, MessageSquare, FileText, BookOpen, Download } from 'lucide-react'
+import { ArrowLeft, Clock, User, Pin, Megaphone, MessageSquare, FileText, BookOpen, Download, Music, Video } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { PostActions } from './PostActions'
 import { CommentSection } from './CommentSection'
+import { LikeButton } from './LikeButton'
+import { PollSection } from './PollSection'
+import { getPostLikeInfo, getPollInfo } from '@/actions/post-interaction'
 
 interface PostPageProps {
     params: Promise<{ id: string }>
@@ -39,6 +42,20 @@ function formatFileSize(bytes: number) {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
 }
 
+function isAudioFile(mimeType: string) {
+    return mimeType.startsWith('audio/')
+}
+
+function isVideoFile(mimeType: string) {
+    return mimeType.startsWith('video/')
+}
+
+function getFileIcon(mimeType: string) {
+    if (isAudioFile(mimeType)) return Music
+    if (isVideoFile(mimeType)) return Video
+    return FileText
+}
+
 export default async function PostPage({ params }: PostPageProps) {
     const { id } = await params
     const session = await auth()
@@ -52,6 +69,13 @@ export default async function PostPage({ params }: PostPageProps) {
     const isAdmin = session?.user?.isAdmin
     const canEdit = isAuthor || isAdmin
     const canComment = session?.user && (session.user.isAdmin || session.user.isApproved)
+    const canLike = !!session?.user && (session.user.isAdmin || session.user.isApproved)
+
+    // 추천 및 투표 정보 가져오기
+    const [likeInfo, pollInfo] = await Promise.all([
+        getPostLikeInfo(id),
+        getPollInfo(id)
+    ])
 
     const typeInfo = getTypeInfo(post.type)
     const TypeIcon = typeInfo.icon
@@ -131,6 +155,27 @@ export default async function PostPage({ params }: PostPageProps) {
                             />
                         </div>
 
+                        {/* Poll */}
+                        {pollInfo && (
+                            <PollSection
+                                poll={{
+                                    ...pollInfo,
+                                    endsAt: pollInfo.endsAt ? new Date(pollInfo.endsAt) : null
+                                }}
+                                canVote={canLike}
+                            />
+                        )}
+
+                        {/* Like Button */}
+                        <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-center">
+                            <LikeButton
+                                postId={post.id}
+                                initialCount={likeInfo.count}
+                                initialLiked={likeInfo.isLiked}
+                                canLike={canLike}
+                            />
+                        </div>
+
                         {/* Attachments */}
                         {post.attachments.length > 0 && (
                             <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800">
@@ -138,29 +183,98 @@ export default async function PostPage({ params }: PostPageProps) {
                                     <FileText className="w-4 h-4" />
                                     첨부파일 ({post.attachments.length})
                                 </h3>
-                                <div className="space-y-2">
-                                    {post.attachments.map((file: { id: string; filename: string; url: string; size: number; mimeType: string }) => (
-                                        <a
-                                            key={file.id}
-                                            href={file.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group"
-                                        >
-                                            <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                                                <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-medium text-slate-900 dark:text-white truncate text-sm">
-                                                    {file.filename}
-                                                </p>
-                                                <p className="text-xs text-slate-500">
-                                                    {formatFileSize(file.size)}
-                                                </p>
-                                            </div>
-                                            <Download className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition-colors" />
-                                        </a>
-                                    ))}
+                                <div className="space-y-4">
+                                    {post.attachments.map((file: { id: string; filename: string; url: string; size: number; mimeType: string }) => {
+                                        const FileIcon = getFileIcon(file.mimeType)
+
+                                        // 오디오 파일인 경우
+                                        if (isAudioFile(file.mimeType)) {
+                                            return (
+                                                <div key={file.id} className="rounded-xl bg-slate-50 dark:bg-slate-800/50 p-4">
+                                                    <div className="flex items-center gap-3 mb-3">
+                                                        <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                                                            <Music className="w-5 h-5 text-green-600 dark:text-green-400" />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="font-medium text-slate-900 dark:text-white truncate text-sm">
+                                                                {file.filename}
+                                                            </p>
+                                                            <p className="text-xs text-slate-500">
+                                                                {formatFileSize(file.size)}
+                                                            </p>
+                                                        </div>
+                                                        <a
+                                                            href={file.url}
+                                                            download
+                                                            className="p-2 text-slate-400 hover:text-blue-600 transition-colors"
+                                                        >
+                                                            <Download className="w-4 h-4" />
+                                                        </a>
+                                                    </div>
+                                                    <audio controls className="w-full" preload="metadata">
+                                                        <source src={file.url} type={file.mimeType} />
+                                                        브라우저가 오디오를 지원하지 않습니다.
+                                                    </audio>
+                                                </div>
+                                            )
+                                        }
+
+                                        // 비디오 파일인 경우
+                                        if (isVideoFile(file.mimeType)) {
+                                            return (
+                                                <div key={file.id} className="rounded-xl bg-slate-50 dark:bg-slate-800/50 p-4">
+                                                    <div className="flex items-center gap-3 mb-3">
+                                                        <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                                                            <Video className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="font-medium text-slate-900 dark:text-white truncate text-sm">
+                                                                {file.filename}
+                                                            </p>
+                                                            <p className="text-xs text-slate-500">
+                                                                {formatFileSize(file.size)}
+                                                            </p>
+                                                        </div>
+                                                        <a
+                                                            href={file.url}
+                                                            download
+                                                            className="p-2 text-slate-400 hover:text-blue-600 transition-colors"
+                                                        >
+                                                            <Download className="w-4 h-4" />
+                                                        </a>
+                                                    </div>
+                                                    <video controls className="w-full rounded-lg" preload="metadata">
+                                                        <source src={file.url} type={file.mimeType} />
+                                                        브라우저가 비디오를 지원하지 않습니다.
+                                                    </video>
+                                                </div>
+                                            )
+                                        }
+
+                                        // 일반 파일인 경우
+                                        return (
+                                            <a
+                                                key={file.id}
+                                                href={file.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group"
+                                            >
+                                                <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                                                    <FileIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-medium text-slate-900 dark:text-white truncate text-sm">
+                                                        {file.filename}
+                                                    </p>
+                                                    <p className="text-xs text-slate-500">
+                                                        {formatFileSize(file.size)}
+                                                    </p>
+                                                </div>
+                                                <Download className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition-colors" />
+                                            </a>
+                                        )
+                                    })}
                                 </div>
                             </div>
                         )}
