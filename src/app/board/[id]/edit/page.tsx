@@ -49,7 +49,10 @@ export default async function EditPage({ params }: EditPageProps) {
                             content: post.content,
                             type: post.type,
                             attachments: post.attachments,
-                            poll: post.poll
+                            poll: post.poll ? {
+                                ...post.poll,
+                                endsAt: post.poll.endsAt?.toISOString() || null
+                            } : null
                         }}
                     />
                 </div>
