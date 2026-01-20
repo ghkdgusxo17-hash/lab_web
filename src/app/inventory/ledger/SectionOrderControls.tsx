@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { ChevronUp, ChevronDown, GripVertical } from 'lucide-react'
 import { reorderSections } from '@/actions/inventory'
 
@@ -13,20 +14,22 @@ interface SectionOrderControlsProps {
 }
 
 export function SectionOrderControls({ section, index, totalSections, currentOrder, allSections }: SectionOrderControlsProps) {
+    const router = useRouter()
     const [loading, setLoading] = useState(false)
 
     async function moveUp() {
         if (index === 0) return
         setLoading(true)
 
-        // Swap orders with the section above
+        // Assign new order values based on index position
         const newSections = allSections.map((s, i) => {
-            if (i === index - 1) return { ...s, order: currentOrder }
-            if (i === index) return { ...s, order: allSections[index - 1].order }
-            return s
+            if (i === index - 1) return { ...s, order: index }
+            if (i === index) return { ...s, order: index - 1 }
+            return { ...s, order: i }
         })
 
         await reorderSections(newSections)
+        router.refresh()
         setLoading(false)
     }
 
@@ -34,14 +37,15 @@ export function SectionOrderControls({ section, index, totalSections, currentOrd
         if (index === totalSections - 1) return
         setLoading(true)
 
-        // Swap orders with the section below
+        // Assign new order values based on index position
         const newSections = allSections.map((s, i) => {
-            if (i === index + 1) return { ...s, order: currentOrder }
-            if (i === index) return { ...s, order: allSections[index + 1].order }
-            return s
+            if (i === index + 1) return { ...s, order: index }
+            if (i === index) return { ...s, order: index + 1 }
+            return { ...s, order: i }
         })
 
         await reorderSections(newSections)
+        router.refresh()
         setLoading(false)
     }
 
