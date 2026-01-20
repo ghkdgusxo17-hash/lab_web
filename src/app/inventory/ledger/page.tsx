@@ -147,9 +147,10 @@ export default async function LedgerPage() {
                                         {/* Account List */}
                                         <div className="divide-y divide-slate-100 dark:divide-slate-800">
                                             {sectionAccounts.map((account: any) => (
-                                                <div
+                                                <Link
                                                     key={account.id}
-                                                    className="px-5 py-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                                                    href={`/inventory/ledger/${account.id}`}
+                                                    className="px-5 py-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer block"
                                                 >
                                                     <div className="flex-1 min-w-0">
                                                         <p className="font-medium text-slate-900 dark:text-white truncate">
@@ -168,16 +169,11 @@ export default async function LedgerPage() {
                                                             }`}>
                                                             {formatCurrency(account.balance)}
                                                         </span>
-                                                        {isAdmin && (
-                                                            <Link
-                                                                href={`/inventory/ledger/${account.id}/edit`}
-                                                                className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                                                            >
-                                                                <Pencil className="w-4 h-4" />
-                                                            </Link>
-                                                        )}
+                                                        <span className="text-slate-300 dark:text-slate-600">
+                                                            &rsaquo;
+                                                        </span>
                                                     </div>
-                                                </div>
+                                                </Link>
                                             ))}
                                         </div>
                                     </div>

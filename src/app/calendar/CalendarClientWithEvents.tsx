@@ -54,13 +54,19 @@ export function CalendarClientWithEvents({ session, events }: CalendarClientWith
     }
 
     const getEventsForDate = (date: Date) => {
+        // 날짜만 비교하기 위해 시간을 제거한 날짜 생성
+        const targetDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+
         return events.filter((event) => {
-            const eventDate = new Date(event.startTime)
-            return (
-                eventDate.getFullYear() === date.getFullYear() &&
-                eventDate.getMonth() === date.getMonth() &&
-                eventDate.getDate() === date.getDate()
-            )
+            const startDate = new Date(event.startTime)
+            const endDate = new Date(event.endTime)
+
+            // 시간을 제거한 시작일과 종료일
+            const eventStart = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())
+            const eventEnd = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate())
+
+            // 대상 날짜가 이벤트 시작일~종료일 사이에 있는지 확인
+            return targetDate >= eventStart && targetDate <= eventEnd
         })
     }
 

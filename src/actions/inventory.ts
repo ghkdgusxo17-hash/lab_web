@@ -724,3 +724,175 @@ export async function deleteLedgerAccount(id: string) {
     revalidatePath('/inventory/ledger')
     return { success: true }
 }
+
+// Get ledger account with transactions
+export async function getLedgerAccountWithTransactions(id: string) {
+    const account = await prisma.ledgerAccount.findUnique({
+        where: { id },
+        include: {
+            recordedBy: {
+                select: { id: true, name: true }
+            },
+            transactions: {
+                orderBy: { date: 'asc' }
+            }
+        }
+    })
+
+    return account
+}
+
+// Add ledger transaction
+export async function addLedgerTransaction(accountId: string, formData: FormData) {
+    const session = await auth()
+
+    if (!session?.user?.isAdmin) {
+        return { error: "관리자만 거래를 추가할 수 있습니다." }
+    }
+
+    const dateStr = formData.get('date') as string
+    const description = formData.get('description') as string
+    const expense = parseInt(formData.get('expense') as string) || 0
+    const income = parseInt(formData.get('income') as string) || 0
+    const note = formData.get('note') as string || null
+
+    if (!dateStr || !description) {
+        return { error: "날짜와 내역을 입력해주세요." }
+    }
+
+    if (expense === 0 && income === 0) {
+        return { error: "지출 또는 입금 금액을 입력해주세요." }
+    }
+
+    // Get previous balance
+    const lastTransaction = await prisma.ledgerTransaction.findFirst({
+        where: { accountId },
+        orderBy: { date: 'desc' }
+    })
+
+    const previousBalance = lastTransaction?.balance || 0
+    const newBalance = previousBalance + income - expense
+
+    // Create transaction
+    await prisma.ledgerTransaction.create({
+        data: {
+            accountId,
+            date: new Date(dateStr),
+            description,
+            expense,
+            income,
+            balance: newBalance,
+            note
+        }
+    })
+
+    // Update account balance
+    await prisma.ledgerAccount.update({
+        where: { id: accountId },
+        data: { balance: newBalance }
+    })
+
+    revalidatePath(`/inventory/ledger/${accountId}`)
+    revalidatePath('/inventory/ledger')
+    return { success: true }
+}
+
+// Update ledger transaction
+export async function updateLedgerTransaction(transactionId: string, formData: FormData) {
+    const session = await auth()
+
+    if (!session?.user?.isAdmin) {
+        return { error: "관리자만 거래를 수정할 수 있습니다." }
+    }
+
+    const transaction = await prisma.ledgerTransaction.findUnique({
+        where: { id: transactionId }
+    })
+
+    if (!transaction) {
+        return { error: "거래를 찾을 수 없습니다." }
+    }
+
+    const dateStr = formData.get('date') as string
+    const description = formData.get('description') as string
+    const expense = parseInt(formData.get('expense') as string) || 0
+    const income = parseInt(formData.get('income') as string) || 0
+    const note = formData.get('note') as string || null
+
+    if (!dateStr || !description) {
+        return { error: "날짜와 내역을 입력해주세요." }
+    }
+
+    // Update the transaction
+    await prisma.ledgerTransaction.update({
+        where: { id: transactionId },
+        data: {
+            date: new Date(dateStr),
+            description,
+            expense,
+            income,
+            note
+        }
+    })
+
+    // Recalculate all balances for this account
+    await recalculateLedgerBalances(transaction.accountId)
+
+    revalidatePath(`/inventory/ledger/${transaction.accountId}`)
+    revalidatePath('/inventory/ledger')
+    return { success: true }
+}
+
+// Delete ledger transaction
+export async function deleteLedgerTransaction(transactionId: string) {
+    const session = await auth()
+
+    if (!session?.user?.isAdmin) {
+        return { error: "관리자만 거래를 삭제할 수 있습니다." }
+    }
+
+    const transaction = await prisma.ledgerTransaction.findUnique({
+        where: { id: transactionId }
+    })
+
+    if (!transaction) {
+        return { error: "거래를 찾을 수 없습니다." }
+    }
+
+    const accountId = transaction.accountId
+
+    await prisma.ledgerTransaction.delete({
+        where: { id: transactionId }
+    })
+
+    // Recalculate all balances for this account
+    await recalculateLedgerBalances(accountId)
+
+    revalidatePath(`/inventory/ledger/${accountId}`)
+    revalidatePath('/inventory/ledger')
+    return { success: true }
+}
+
+// Recalculate all balances for an account (after update/delete)
+async function recalculateLedgerBalances(accountId: string) {
+    const transactions = await prisma.ledgerTransaction.findMany({
+        where: { accountId },
+        orderBy: { date: 'asc' }
+    })
+
+    let runningBalance = 0
+
+    for (const tx of transactions) {
+        runningBalance = runningBalance + tx.income - tx.expense
+        await prisma.ledgerTransaction.update({
+            where: { id: tx.id },
+            data: { balance: runningBalance }
+        })
+    }
+
+    // Update account balance
+    await prisma.ledgerAccount.update({
+        where: { id: accountId },
+        data: { balance: runningBalance }
+    })
+}

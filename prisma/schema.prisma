@@ -475,8 +475,24 @@ model LedgerAccount {
   description   String?  // 설명
   recordedById  String
   recordedBy    User     @relation("LedgerRecorder", fields: [recordedById], references: [id])
+  transactions  LedgerTransaction[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+// 장부 거래 내역
+model LedgerTransaction {
+  id            String        @id @default(cuid())
+  accountId     String
+  account       LedgerAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  date          DateTime      // 거래일
+  description   String        // 내역
+  expense       Int           @default(0)  // 지출 (원)
+  income        Int           @default(0)  // 입금 (원)
+  balance       Int           @default(0)  // 거래 후 잔액 (원)
+  note          String?       // 비고
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 }
 
 // ============ Post Interactions (게시글 상호작용) ============
