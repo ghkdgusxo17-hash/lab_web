@@ -29,7 +29,8 @@ export default async function EditLedgerAccountPage({ params }: EditPageProps) {
         where: { id }
     })
 
-    const existingSections = await getLedgerSections()
+    const sectionsData = await getLedgerSections()
+    const existingSections = sectionsData.map(s => s.section)
 
     if (!account) {
         notFound()

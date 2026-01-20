@@ -19,7 +19,8 @@ export default async function NewLedgerAccountPage() {
         redirect('/inventory/ledger')
     }
 
-    const existingSections = await getLedgerSections()
+    const sectionsData = await getLedgerSections()
+    const existingSections = sectionsData.map(s => s.section)
 
     return (
         <>
