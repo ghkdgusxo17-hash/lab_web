@@ -624,7 +624,7 @@ export async function getLedgerAccounts() {
                 select: { id: true, name: true }
             }
         },
-        orderBy: [{ section: 'asc' }, { name: 'asc' }]
+        orderBy: [{ sectionOrder: 'asc' }, { section: 'asc' }, { name: 'asc' }]
     })
 
     return accounts
@@ -637,14 +637,53 @@ export async function getLedgerSummary() {
     return { totalBalance, accountCount: accounts.length }
 }
 
-// Get unique ledger sections
+// Get unique ledger sections with order
 export async function getLedgerSections() {
-    const sections = await prisma.ledgerAccount.groupBy({
-        by: ['section'],
-        orderBy: { section: 'asc' }
+    const accounts = await prisma.ledgerAccount.findMany({
+        select: { section: true, sectionOrder: true },
+        distinct: ['section'],
+        orderBy: [{ sectionOrder: 'asc' }, { section: 'asc' }]
     })
 
-    return sections.map(s => s.section)
+    return accounts.map(a => ({ section: a.section, order: a.sectionOrder }))
+}
+
+// Update section order (Admin only)
+export async function updateSectionOrder(section: string, newOrder: number) {
+    const session = await auth()
+
+    if (!session?.user?.isAdmin) {
+        return { error: "관리자만 순서를 변경할 수 있습니다." }
+    }
+
+    // Update all accounts in this section
+    await prisma.ledgerAccount.updateMany({
+        where: { section },
+        data: { sectionOrder: newOrder }
+    })
+
+    revalidatePath('/inventory/ledger')
+    return { success: true }
+}
+
+// Reorder sections (Admin only)
+export async function reorderSections(sections: { section: string; order: number }[]) {
+    const session = await auth()
+
+    if (!session?.user?.isAdmin) {
+        return { error: "관리자만 순서를 변경할 수 있습니다." }
+    }
+
+    // Update each section's order
+    for (const { section, order } of sections) {
+        await prisma.ledgerAccount.updateMany({
+            where: { section },
+            data: { sectionOrder: order }
+        })
+    }
+
+    revalidatePath('/inventory/ledger')
+    return { success: true }
 }
 
 // Create ledger account (Admin only)

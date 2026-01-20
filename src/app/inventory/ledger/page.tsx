@@ -2,8 +2,9 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 import { auth } from '@/auth'
 import { Navbar } from '@/components/layout'
-import { Plus, BookOpen, Wallet, Pencil, FolderOpen } from 'lucide-react'
+import { Plus, BookOpen, Wallet, FolderOpen } from 'lucide-react'
 import { getLedgerAccounts, getLedgerSummary } from '@/actions/inventory'
+import { SectionOrderControls } from './SectionOrderControls'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,17 +30,30 @@ export default async function LedgerPage() {
         getLedgerSummary()
     ])
 
-    // Group accounts by section
-    const groupedAccounts = accounts.reduce((groups: Record<string, typeof accounts>, account: any) => {
-        const section = account.section || '기본'
-        if (!groups[section]) {
-            groups[section] = []
-        }
-        groups[section].push(account)
-        return groups
-    }, {})
+    // Group accounts by section with order info
+    const groupedAccounts: Record<string, { accounts: typeof accounts; order: number }> = {}
 
-    const sections = Object.keys(groupedAccounts).sort()
+    for (const account of accounts) {
+        const section = account.section || '기본'
+        if (!groupedAccounts[section]) {
+            groupedAccounts[section] = {
+                accounts: [],
+                order: (account as any).sectionOrder || 0
+            }
+        }
+        groupedAccounts[section].accounts.push(account)
+    }
+
+    // Sort sections by order, then by name
+    const sortedSections = Object.entries(groupedAccounts)
+        .sort(([, a], [, b]) => {
+            if (a.order !== b.order) return a.order - b.order
+            return 0
+        })
+        .map(([section, data]) => ({ section, ...data }))
+
+    // Create sections array for reordering
+    const sectionsForReorder = sortedSections.map(s => ({ section: s.section, order: s.order }))
 
     return (
         <>
@@ -84,7 +98,7 @@ export default async function LedgerPage() {
                                     {formatCurrency(summary.totalBalance)}
                                 </p>
                                 <p className="text-sm text-slate-400 dark:text-slate-500 mt-1">
-                                    {sections.length}개 섹션 · {summary.accountCount}개 항목
+                                    {sortedSections.length}개 섹션 · {summary.accountCount}개 항목
                                 </p>
                             </div>
                             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl">
@@ -94,7 +108,7 @@ export default async function LedgerPage() {
                     </div>
 
                     {/* Sections */}
-                    {sections.length === 0 ? (
+                    {sortedSections.length === 0 ? (
                         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-12 text-center">
                             <BookOpen className="w-12 h-12 text-slate-200 dark:text-slate-700 mx-auto mb-4" />
                             <p className="text-slate-500 dark:text-slate-400">
@@ -112,8 +126,7 @@ export default async function LedgerPage() {
                         </div>
                     ) : (
                         <div className="space-y-6">
-                            {sections.map((section) => {
-                                const sectionAccounts = groupedAccounts[section]
+                            {sortedSections.map(({ section, accounts: sectionAccounts, order }, index) => {
                                 const sectionTotal = sectionAccounts.reduce((sum: number, acc: any) => sum + acc.balance, 0)
 
                                 return (
@@ -124,6 +137,15 @@ export default async function LedgerPage() {
                                         {/* Section Header */}
                                         <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between">
                                             <div className="flex items-center gap-3">
+                                                {isAdmin && (
+                                                    <SectionOrderControls
+                                                        section={section}
+                                                        index={index}
+                                                        totalSections={sortedSections.length}
+                                                        currentOrder={order}
+                                                        allSections={sectionsForReorder}
+                                                    />
+                                                )}
                                                 <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
                                                     <FolderOpen className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                                                 </div>
