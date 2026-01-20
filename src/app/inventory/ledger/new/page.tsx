@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default async function NewLedgerAccountPage() {
     const session = await auth()
 
-    if (!session?.user?.isAdmin) {
+    if (!session?.user?.isAdmin && !session?.user?.isApproved) {
         redirect('/inventory/ledger')
     }
 

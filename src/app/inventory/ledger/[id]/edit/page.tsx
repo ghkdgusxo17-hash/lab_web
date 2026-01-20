@@ -21,7 +21,7 @@ export default async function EditLedgerAccountPage({ params }: EditPageProps) {
     const { id } = await params
     const session = await auth()
 
-    if (!session?.user?.isAdmin) {
+    if (!session?.user?.isAdmin && !session?.user?.isApproved) {
         redirect('/inventory/ledger')
     }
 

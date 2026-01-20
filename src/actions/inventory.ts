@@ -648,12 +648,12 @@ export async function getLedgerSections() {
     return accounts.map(a => ({ section: a.section, order: a.sectionOrder }))
 }
 
-// Update section order (Admin only)
+// Update section order (Members)
 export async function updateSectionOrder(section: string, newOrder: number) {
     const session = await auth()
 
-    if (!session?.user?.isAdmin) {
-        return { error: "관리자만 순서를 변경할 수 있습니다." }
+    if (!session?.user?.isAdmin && !session?.user?.isApproved) {
+        return { error: "승인된 멤버만 순서를 변경할 수 있습니다." }
     }
 
     // Update all accounts in this section
@@ -666,12 +666,12 @@ export async function updateSectionOrder(section: string, newOrder: number) {
     return { success: true }
 }
 
-// Reorder sections (Admin only)
+// Reorder sections (Members)
 export async function reorderSections(sections: { section: string; order: number }[]) {
     const session = await auth()
 
-    if (!session?.user?.isAdmin) {
-        return { error: "관리자만 순서를 변경할 수 있습니다." }
+    if (!session?.user?.isAdmin && !session?.user?.isApproved) {
+        return { error: "승인된 멤버만 순서를 변경할 수 있습니다." }
     }
 
     // Update each section's order
@@ -686,12 +686,12 @@ export async function reorderSections(sections: { section: string; order: number
     return { success: true }
 }
 
-// Create ledger account (Admin only)
+// Create ledger account (Members)
 export async function createLedgerAccount(formData: FormData) {
     const session = await auth()
 
-    if (!session?.user?.isAdmin) {
-        return { error: "관리자만 계좌를 추가할 수 있습니다." }
+    if (!session?.user?.isAdmin && !session?.user?.isApproved) {
+        return { error: "승인된 멤버만 항목을 추가할 수 있습니다." }
     }
 
     const section = formData.get('section') as string || '기본'
@@ -717,12 +717,12 @@ export async function createLedgerAccount(formData: FormData) {
     return { success: true }
 }
 
-// Update ledger account balance (Admin only)
+// Update ledger account balance (Members)
 export async function updateLedgerAccount(id: string, formData: FormData) {
     const session = await auth()
 
-    if (!session?.user?.isAdmin) {
-        return { error: "관리자만 수정할 수 있습니다." }
+    if (!session?.user?.isAdmin && !session?.user?.isApproved) {
+        return { error: "승인된 멤버만 수정할 수 있습니다." }
     }
 
     const section = formData.get('section') as string || '기본'
@@ -748,12 +748,12 @@ export async function updateLedgerAccount(id: string, formData: FormData) {
     return { success: true }
 }
 
-// Delete ledger account (Admin only)
+// Delete ledger account (Members)
 export async function deleteLedgerAccount(id: string) {
     const session = await auth()
 
-    if (!session?.user?.isAdmin) {
-        return { error: "관리자만 삭제할 수 있습니다." }
+    if (!session?.user?.isAdmin && !session?.user?.isApproved) {
+        return { error: "승인된 멤버만 삭제할 수 있습니다." }
     }
 
     await prisma.ledgerAccount.delete({
@@ -781,12 +781,12 @@ export async function getLedgerAccountWithTransactions(id: string) {
     return account
 }
 
-// Add ledger transaction
+// Add ledger transaction (Members)
 export async function addLedgerTransaction(accountId: string, formData: FormData) {
     const session = await auth()
 
-    if (!session?.user?.isAdmin) {
-        return { error: "관리자만 거래를 추가할 수 있습니다." }
+    if (!session?.user?.isAdmin && !session?.user?.isApproved) {
+        return { error: "승인된 멤버만 거래를 추가할 수 있습니다." }
     }
 
     const dateStr = formData.get('date') as string
@@ -836,12 +836,12 @@ export async function addLedgerTransaction(accountId: string, formData: FormData
     return { success: true }
 }
 
-// Update ledger transaction
+// Update ledger transaction (Members)
 export async function updateLedgerTransaction(transactionId: string, formData: FormData) {
     const session = await auth()
 
-    if (!session?.user?.isAdmin) {
-        return { error: "관리자만 거래를 수정할 수 있습니다." }
+    if (!session?.user?.isAdmin && !session?.user?.isApproved) {
+        return { error: "승인된 멤버만 거래를 수정할 수 있습니다." }
     }
 
     const transaction = await prisma.ledgerTransaction.findUnique({
@@ -882,12 +882,12 @@ export async function updateLedgerTransaction(transactionId: string, formData: F
     return { success: true }
 }
 
-// Delete ledger transaction
+// Delete ledger transaction (Members)
 export async function deleteLedgerTransaction(transactionId: string) {
     const session = await auth()
 
-    if (!session?.user?.isAdmin) {
-        return { error: "관리자만 거래를 삭제할 수 있습니다." }
+    if (!session?.user?.isAdmin && !session?.user?.isApproved) {
+        return { error: "승인된 멤버만 거래를 삭제할 수 있습니다." }
     }
 
     const transaction = await prisma.ledgerTransaction.findUnique({

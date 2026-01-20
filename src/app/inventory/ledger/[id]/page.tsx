@@ -28,7 +28,7 @@ function formatCurrency(amount: number) {
 export default async function LedgerDetailPage({ params }: LedgerDetailPageProps) {
     const { id } = await params
     const session = await auth()
-    const isAdmin = session?.user?.isAdmin
+    const canEdit = session?.user?.isAdmin || session?.user?.isApproved
 
     const account = await getLedgerAccountWithTransactions(id)
 
@@ -76,7 +76,7 @@ export default async function LedgerDetailPage({ params }: LedgerDetailPageProps
                                 <ArrowLeft className="w-4 h-4" />
                                 목록
                             </Link>
-                            {isAdmin && (
+                            {canEdit && (
                                 <Link
                                     href={`/inventory/ledger/${id}/edit`}
                                     className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors"
@@ -110,7 +110,7 @@ export default async function LedgerDetailPage({ params }: LedgerDetailPageProps
                     <LedgerTransactionTable
                         accountId={id}
                         transactions={serializedTransactions}
-                        isAdmin={isAdmin || false}
+                        canEdit={canEdit || false}
                     />
                 </div>
             </main>

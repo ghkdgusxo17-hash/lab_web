@@ -17,7 +17,7 @@ interface Transaction {
 interface LedgerTransactionTableProps {
     accountId: string
     transactions: Transaction[]
-    isAdmin: boolean
+    canEdit: boolean
 }
 
 function formatCurrency(amount: number) {
@@ -35,7 +35,7 @@ function formatDateForInput(dateStr: string) {
     return date.toISOString().split('T')[0]
 }
 
-export function LedgerTransactionTable({ accountId, transactions, isAdmin }: LedgerTransactionTableProps) {
+export function LedgerTransactionTable({ accountId, transactions, canEdit }: LedgerTransactionTableProps) {
     const [isAdding, setIsAdding] = useState(false)
     const [editingId, setEditingId] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
@@ -137,7 +137,7 @@ export function LedgerTransactionTable({ accountId, transactions, isAdmin }: Led
                 <h2 className="font-bold text-lg text-slate-900 dark:text-white">
                     거래 내역
                 </h2>
-                {isAdmin && !isAdding && (
+                {canEdit && !isAdding && (
                     <button
                         onClick={() => setIsAdding(true)}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-bold rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
@@ -165,7 +165,7 @@ export function LedgerTransactionTable({ accountId, transactions, isAdmin }: Led
                             <th className="px-4 py-3 text-right font-bold text-slate-600 dark:text-slate-300 w-28">입금</th>
                             <th className="px-4 py-3 text-right font-bold text-slate-600 dark:text-slate-300 w-32">잔액</th>
                             <th className="px-4 py-3 text-left font-bold text-slate-600 dark:text-slate-300 w-40">비고</th>
-                            {isAdmin && <th className="px-4 py-3 w-20"></th>}
+                            {canEdit && <th className="px-4 py-3 w-20"></th>}
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -321,7 +321,7 @@ export function LedgerTransactionTable({ accountId, transactions, isAdmin }: Led
                                         <td className="px-4 py-3 text-slate-500 dark:text-slate-400 text-xs">
                                             {tx.note || '-'}
                                         </td>
-                                        {isAdmin && (
+                                        {canEdit && (
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-1">
                                                     <button
@@ -347,9 +347,9 @@ export function LedgerTransactionTable({ accountId, transactions, isAdmin }: Led
                         {/* Empty state */}
                         {transactions.length === 0 && !isAdding && (
                             <tr>
-                                <td colSpan={isAdmin ? 7 : 6} className="px-4 py-12 text-center text-slate-500 dark:text-slate-400">
+                                <td colSpan={canEdit ? 7 : 6} className="px-4 py-12 text-center text-slate-500 dark:text-slate-400">
                                     거래 내역이 없습니다
-                                    {isAdmin && (
+                                    {canEdit && (
                                         <button
                                             onClick={() => setIsAdding(true)}
                                             className="block mx-auto mt-2 text-blue-600 hover:text-blue-700"

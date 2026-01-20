@@ -23,7 +23,7 @@ function formatCurrency(amount: number) {
 
 export default async function LedgerPage() {
     const session = await auth()
-    const isAdmin = session?.user?.isAdmin
+    const canEdit = session?.user?.canEdit || session?.user?.isApproved
 
     const [accounts, summary] = await Promise.all([
         getLedgerAccounts(),
@@ -75,7 +75,7 @@ export default async function LedgerPage() {
                                 예산 잔액을 관리합니다
                             </p>
                         </div>
-                        {isAdmin && (
+                        {canEdit && (
                             <Link
                                 href="/inventory/ledger/new"
                                 className="btn-primary px-5 py-2.5 text-white text-sm"
@@ -114,7 +114,7 @@ export default async function LedgerPage() {
                             <p className="text-slate-500 dark:text-slate-400">
                                 등록된 항목이 없습니다
                             </p>
-                            {isAdmin && (
+                            {canEdit && (
                                 <Link
                                     href="/inventory/ledger/new"
                                     className="mt-4 inline-flex items-center gap-2 text-blue-600 hover:text-blue-700"
@@ -137,7 +137,7 @@ export default async function LedgerPage() {
                                         {/* Section Header */}
                                         <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between">
                                             <div className="flex items-center gap-3">
-                                                {isAdmin && (
+                                                {canEdit && (
                                                     <SectionOrderControls
                                                         section={section}
                                                         index={index}
