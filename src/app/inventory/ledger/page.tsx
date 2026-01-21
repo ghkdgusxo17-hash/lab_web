@@ -23,7 +23,7 @@ function formatCurrency(amount: number) {
 
 export default async function LedgerPage() {
     const session = await auth()
-    const canEdit = session?.user?.canEdit || session?.user?.isApproved
+    const canEdit = session?.user?.isAdmin || session?.user?.isApproved
 
     const [accounts, summary] = await Promise.all([
         getLedgerAccounts(),
