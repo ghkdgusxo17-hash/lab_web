@@ -27,9 +27,9 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: '이미지 파일만 업로드 가능합니다.' }, { status: 400 })
         }
 
-        // Check file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            return NextResponse.json({ error: '파일 크기는 5MB 이하여야 합니다.' }, { status: 400 })
+        // Check file size (max 5GB)
+        if (file.size > 5 * 1024 * 1024 * 1024) {
+            return NextResponse.json({ error: '파일 크기는 5GB 이하여야 합니다.' }, { status: 400 })
         }
 
         // Get current user's image to delete old one

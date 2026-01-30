@@ -56,6 +56,9 @@ model User {
   // Post interactions
   postLikes             PostLike[]
   pollVotes             PollVote[]
+
+  // Lab Meeting
+  labMeetingPresentations LabMeetingPresenter[]
 }
 
 model Account {
@@ -186,18 +189,44 @@ model Announcement {
 }
 
 model Material {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  category    String   @default("OTHER") // PAPER, PPT, DATA, LAB_MEETING, OTHER
-  filename    String
-  url         String
-  size        Int
-  mimeType    String
-  uploaderId  String
-  uploader    User     @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String      @id @default(cuid())
+  title         String
+  description   String?
+  category      String      @default("OTHER") // PAPER, PPT, DATA, LAB_MEETING, OTHER
+  filename      String
+  url           String
+  size          Int
+  mimeType      String
+  uploaderId    String
+  uploader      User        @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+  labMeetingId  String?
+  labMeeting    LabMeeting? @relation(fields: [labMeetingId], references: [id], onDelete: SetNull)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+// ============ Lab Meeting (랩미팅) ============
+
+model LabMeeting {
+  id          String               @id @default(cuid())
+  date        DateTime             // 랩미팅 날짜
+  title       String               // 제목 (예: "주간 랩미팅", "논문 세미나")
+  description String?              // 설명/메모
+  materials   Material[]           // 연결된 자료들
+  presenters  LabMeetingPresenter[] // 발표자들
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+}
+
+model LabMeetingPresenter {
+  id           String     @id @default(cuid())
+  labMeetingId String
+  labMeeting   LabMeeting @relation(fields: [labMeetingId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([labMeetingId, userId])
 }
 
 // ============ Task Management ============

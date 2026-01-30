@@ -82,10 +82,10 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: '허용되지 않는 파일 형식입니다.' }, { status: 400 })
         }
 
-        // 파일 크기 검증 (1GB)
-        const MAX_SIZE = 1 * 1024 * 1024 * 1024 // 1GB
+        // 파일 크기 검증 (5GB)
+        const MAX_SIZE = 5 * 1024 * 1024 * 1024 // 5GB
         if (file.size > MAX_SIZE) {
-            return NextResponse.json({ error: '파일 크기는 1GB 이하여야 합니다.' }, { status: 400 })
+            return NextResponse.json({ error: '파일 크기는 5GB 이하여야 합니다.' }, { status: 400 })
         }
 
         const bytes = await file.arrayBuffer()
