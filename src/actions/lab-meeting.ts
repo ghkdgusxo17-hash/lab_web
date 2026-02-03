@@ -53,6 +53,13 @@ export async function getLabMeeting(id: string) {
                 include: {
                     uploader: {
                         select: { id: true, name: true, image: true }
+                    },
+                    transcription: {
+                        select: {
+                            id: true,
+                            status: true,
+                            summary: true
+                        }
                     }
                 },
                 orderBy: { createdAt: 'desc' }

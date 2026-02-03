@@ -10,7 +10,7 @@ interface Member {
     name: string | null
     image: string | null
     _count: {
-        materials: number
+        materialsUploaded: number
     }
 }
 
@@ -112,7 +112,7 @@ export function MaterialMemberFilter({ members, currentUserId, currentCategory, 
                                             {member.name || '익명'}
                                         </p>
                                         <p className="text-xs text-slate-500">
-                                            {member._count.materials}개 자료
+                                            {member._count.materialsUploaded}개 자료
                                         </p>
                                     </div>
                                 </button>

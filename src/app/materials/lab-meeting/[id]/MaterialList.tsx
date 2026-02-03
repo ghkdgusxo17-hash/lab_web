@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { FileText, Download, Trash2, User, FolderOpen } from 'lucide-react'
+import Link from 'next/link'
+import { FileText, Download, Trash2, User, FolderOpen, Mic, CheckCircle, Loader2, AlertCircle } from 'lucide-react'
 import { deleteLabMeetingMaterial } from '@/actions/lab-meeting'
 
 interface Material {
@@ -19,6 +20,11 @@ interface Material {
         name: string | null
         image: string | null
     }
+    transcription: {
+        id: string
+        status: string
+        summary: string | null
+    } | null
     createdAt: Date
 }
 
@@ -131,6 +137,48 @@ export function MaterialList({ materials, currentUserId, isAdmin }: Props) {
                                     <span>{formatFileSize(material.size)}</span>
                                     <span>{formatDate(material.createdAt)}</span>
                                 </div>
+
+                                {/* Transcription Status */}
+                                {material.transcription ? (
+                                    material.transcription.status === 'FAILED' ? (
+                                        <Link
+                                            href={`/meetings/upload?materialId=${material.id}`}
+                                            className="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full mt-2 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                                        >
+                                            <AlertCircle className="w-3 h-3" />
+                                            처리 실패 - 다시 시도
+                                        </Link>
+                                    ) : (
+                                    <Link
+                                        href={`/meetings/${material.transcription.id}`}
+                                        className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full mt-2 ${
+                                            material.transcription.status === 'COMPLETED'
+                                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                        }`}
+                                    >
+                                        {material.transcription.status === 'COMPLETED' ? (
+                                            <>
+                                                <CheckCircle className="w-3 h-3" />
+                                                발표요약 보기
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Loader2 className="w-3 h-3 animate-spin" />
+                                                처리 중...
+                                            </>
+                                        )}
+                                    </Link>
+                                    )
+                                ) : (
+                                    <Link
+                                        href={`/meetings/upload?materialId=${material.id}`}
+                                        className="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full mt-2 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+                                    >
+                                        <Mic className="w-3 h-3" />
+                                        녹음 업로드
+                                    </Link>
+                                )}
                             </div>
                             <div className="flex items-center gap-1">
                                 <a

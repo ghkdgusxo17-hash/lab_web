@@ -43,7 +43,7 @@ export async function getMaterials(category?: string, userId?: string, search?: 
 export async function getMaterialUploaders() {
     const uploaders = await prisma.user.findMany({
         where: {
-            materials: {
+            materialsUploaded: {
                 some: {}
             }
         },
@@ -52,7 +52,7 @@ export async function getMaterialUploaders() {
             name: true,
             image: true,
             _count: {
-                select: { materials: true }
+                select: { materialsUploaded: true }
             }
         },
         orderBy: { name: 'asc' }
