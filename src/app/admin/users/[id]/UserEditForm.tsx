@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, Trash2, User, Upload } from 'lucide-react'
+import { ArrowLeft, Loader2, Trash2, User, Upload, X, Plus } from 'lucide-react'
 import { updateUserProfile, deleteUser } from '@/actions/user'
 
 const ROLES = [
@@ -38,6 +38,37 @@ export function UserEditForm({ user }: UserEditFormProps) {
     const [error, setError] = useState('')
     const [imageUrl, setImageUrl] = useState(user.image || '')
     const [selectedRole, setSelectedRole] = useState(user.role)
+
+    // Tag-based research interests
+    const [tags, setTags] = useState<string[]>(() => {
+        if (!user.researchInterests) return []
+        try {
+            const parsed = JSON.parse(user.researchInterests)
+            return Array.isArray(parsed) ? parsed.filter((t: string) => t.trim() !== '') : []
+        } catch {
+            return user.researchInterests.split(',').map(s => s.trim()).filter(Boolean)
+        }
+    })
+    const [tagInput, setTagInput] = useState('')
+
+    function addTag() {
+        const trimmed = tagInput.trim()
+        if (trimmed && !tags.includes(trimmed)) {
+            setTags([...tags, trimmed])
+            setTagInput('')
+        }
+    }
+
+    function removeTag(tagToRemove: string) {
+        setTags(tags.filter(tag => tag !== tagToRemove))
+    }
+
+    function handleTagKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+        if (e.key === 'Enter') {
+            e.preventDefault()
+            addTag()
+        }
+    }
 
     async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0]
@@ -76,6 +107,7 @@ export function UserEditForm({ user }: UserEditFormProps) {
 
         const formData = new FormData(e.currentTarget)
         formData.set('image', imageUrl)
+        formData.set('researchInterests', JSON.stringify(tags))
         const result = await updateUserProfile(user.id, formData)
 
         if (result.error) {
@@ -294,20 +326,51 @@ export function UserEditForm({ user }: UserEditFormProps) {
                     />
                 </div>
 
-                {/* Research Interests */}
+                {/* Research Interests - Tag Input */}
                 <div>
-                    <label htmlFor="researchInterests" className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
                         연구 분야
                     </label>
-                    <input
-                        id="researchInterests"
-                        name="researchInterests"
-                        type="text"
-                        defaultValue={user.researchInterests || ''}
-                        placeholder="예: 머신러닝, 공정최적화, 반응공학"
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <p className="mt-1 text-xs text-slate-500">쉼표로 구분하여 입력</p>
+
+                    {/* Tags Display */}
+                    <div className="flex flex-wrap gap-2 mb-3">
+                        {tags.map((tag, index) => (
+                            <span
+                                key={index}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium"
+                            >
+                                {tag}
+                                <button
+                                    type="button"
+                                    onClick={() => removeTag(tag)}
+                                    className="w-4 h-4 flex items-center justify-center rounded-full hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                                >
+                                    <X className="w-3 h-3" />
+                                </button>
+                            </span>
+                        ))}
+                    </div>
+
+                    {/* Tag Input */}
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            value={tagInput}
+                            onChange={(e) => setTagInput(e.target.value)}
+                            onKeyDown={handleTagKeyDown}
+                            placeholder="키워드 입력 후 Enter 또는 추가 버튼"
+                            className="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <button
+                            type="button"
+                            onClick={addTag}
+                            className="px-4 py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-1"
+                        >
+                            <Plus className="w-4 h-4" />
+                            추가
+                        </button>
+                    </div>
+                    <p className="mt-2 text-xs text-slate-500">연구 키워드를 하나씩 추가하세요</p>
                 </div>
             </div>
 
