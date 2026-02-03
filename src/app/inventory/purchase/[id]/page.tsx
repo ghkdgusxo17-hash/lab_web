@@ -88,7 +88,7 @@ export default async function PurchaseRequestDetailPage({ params }: PageProps) {
     const status = getStatusInfo(request.status)
     const StatusIcon = status.icon
     const priority = getPriorityLabel(request.priority)
-    const canDelete = isAdmin || request.requester.id === userId
+    const canDelete = isAdmin || request.requester?.id === userId
 
     return (
         <>
@@ -157,7 +157,7 @@ export default async function PurchaseRequestDetailPage({ params }: PageProps) {
                         {/* Requester */}
                         <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                {request.requester.image ? (
+                                {request.requester?.image ? (
                                     <Image
                                         src={request.requester.image}
                                         alt=""
@@ -172,7 +172,7 @@ export default async function PurchaseRequestDetailPage({ params }: PageProps) {
                                 )}
                                 <div>
                                     <p className="text-sm font-medium text-slate-900 dark:text-white">
-                                        {request.requester.name || '알 수 없음'}
+                                        {request.requester?.name || request.requesterName || '알 수 없음'}
                                     </p>
                                     <p className="text-xs text-slate-500 dark:text-slate-400">
                                         요청자
@@ -224,12 +224,12 @@ export default async function PurchaseRequestDetailPage({ params }: PageProps) {
                     )}
 
                     {/* Approver Info */}
-                    {request.approver && (
+                    {(request.approver || request.approverName) && (
                         <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4">
                             <p className="text-sm text-slate-500 dark:text-slate-400">
                                 {request.status === 'REJECTED' ? '반려' : '승인'}:
                                 <span className="font-medium text-slate-700 dark:text-slate-300 ml-1">
-                                    {request.approver.name}
+                                    {request.approver?.name || request.approverName || '알 수 없음'}
                                 </span>
                             </p>
                         </div>

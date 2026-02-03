@@ -249,7 +249,8 @@ export async function recordInventoryTransaction(
                 type,
                 quantity,
                 reason,
-                performedById: session.user.id
+                performedById: session.user.id,
+                performedByName: session.user.name || '알 수 없음'
             }
         }),
         prisma.inventoryItem.update({
@@ -417,6 +418,7 @@ export async function createPurchaseRequest(formData: FormData) {
             estimatedCost,
             quotationUrl,
             requesterId: session.user.id,
+            requesterName: session.user.name || '알 수 없음',
             items: items.length > 0 ? {
                 create: items.map(item => ({
                     name: item.name,
@@ -445,6 +447,7 @@ export async function approvePurchaseRequest(id: string) {
         data: {
             status: 'APPROVED',
             approverId: session.user.id,
+            approverName: session.user.name || '알 수 없음',
             approvedAt: new Date()
         }
     })
@@ -487,6 +490,7 @@ export async function rejectPurchaseRequest(id: string, reason: string) {
         data: {
             status: 'REJECTED',
             approverId: session.user.id,
+            approverName: session.user.name || '알 수 없음',
             approvedAt: new Date(),
             rejectReason: reason
         }
@@ -709,7 +713,8 @@ export async function createLedgerAccount(formData: FormData) {
             name,
             balance,
             description,
-            recordedById: session.user.id
+            recordedById: session.user.id,
+            recordedByName: session.user.name || '알 수 없음'
         }
     })
 

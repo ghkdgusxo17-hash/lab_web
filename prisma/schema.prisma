@@ -31,6 +31,10 @@ model User {
   researchInterests String?       // JSON array stored as string
   joinedAt          DateTime      @default(now())
   graduatedAt       DateTime?
+  // 졸업생 정보
+  currentCompany    String?       // 현재 직장
+  currentPosition   String?       // 현재 직책
+  degreeObtained    String?       // 취득 학위 (MS, PhD)
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
@@ -382,6 +386,7 @@ model Publication {
 model SiteSettings {
   id              String   @id @default("main")
   videoEnabled    Boolean  @default(false)  // Enable video hover on research cards
+  alumniVisible   Boolean  @default(false)  // 외부인에게 졸업생 섹션 표시 여부
   updatedAt       DateTime @updatedAt
 }
 
@@ -454,8 +459,9 @@ model InventoryTransaction {
   type          String         // IN (입고), OUT (출고)
   quantity      Int            // 수량 (양수)
   reason        String?        // 사유 (구매, 사용, 폐기 등)
-  performedById String
-  performedBy   User           @relation("InventoryPerformer", fields: [performedById], references: [id])
+  performedById   String?
+  performedBy     User?          @relation("InventoryPerformer", fields: [performedById], references: [id], onDelete: SetNull)
+  performedByName String?        // 사용자 삭제 시에도 이름 유지
   createdAt     DateTime       @default(now())
 }
 
@@ -472,10 +478,12 @@ model PurchaseRequest {
   quotationUrl  String?             // 견적서 URL
   receiptUrl    String?             // 영수증 URL
   rejectReason  String?             // 반려 사유
-  requesterId   String
-  requester     User                @relation("PurchaseRequester", fields: [requesterId], references: [id])
-  approverId    String?
-  approver      User?               @relation("PurchaseApprover", fields: [approverId], references: [id])
+  requesterId     String?
+  requester       User?               @relation("PurchaseRequester", fields: [requesterId], references: [id], onDelete: SetNull)
+  requesterName   String?             // 사용자 삭제 시에도 이름 유지
+  approverId      String?
+  approver        User?               @relation("PurchaseApprover", fields: [approverId], references: [id], onDelete: SetNull)
+  approverName    String?             // 사용자 삭제 시에도 이름 유지
   approvedAt    DateTime?
   purchasedAt   DateTime?
   createdAt     DateTime            @default(now())
@@ -503,8 +511,9 @@ model LedgerAccount {
   name          String   // 항목명
   balance       Int      @default(0)  // 현재 잔액 (원)
   description   String?  // 설명
-  recordedById  String
-  recordedBy    User     @relation("LedgerRecorder", fields: [recordedById], references: [id])
+  recordedById    String?
+  recordedBy      User?    @relation("LedgerRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+  recordedByName  String?  // 사용자 삭제 시에도 이름 유지
   transactions  LedgerTransaction[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

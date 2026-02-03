@@ -82,10 +82,10 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: '허용되지 않는 파일 형식입니다.' }, { status: 400 })
         }
 
-        // 파일 크기 검증 (5GB)
-        const MAX_SIZE = 5 * 1024 * 1024 * 1024 // 5GB
+        // 파일 크기 검증 (100MB - Cloudflare 무료 플랜 제한)
+        const MAX_SIZE = 100 * 1024 * 1024 // 100MB
         if (file.size > MAX_SIZE) {
-            return NextResponse.json({ error: '파일 크기는 5GB 이하여야 합니다.' }, { status: 400 })
+            return NextResponse.json({ error: '파일 크기는 100MB 이하여야 합니다.' }, { status: 400 })
         }
 
         const bytes = await file.arrayBuffer()
@@ -110,12 +110,11 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: '업로드 중 오류가 발생했습니다.' }, { status: 500 })
         }
 
-        // Public URL 가져오기
-        const { data: urlData } = supabaseAdmin.storage
-            .from(STORAGE_BUCKET)
-            .getPublicUrl(filePath)
+        // Return proxy URL instead of direct Supabase URL
+        // This allows files to be accessed via the same domain (works with Cloudflare tunnel)
+        const proxyUrl = `/api/storage/${STORAGE_BUCKET}/${filePath}`
 
-        return NextResponse.json({ url: urlData.publicUrl })
+        return NextResponse.json({ url: proxyUrl })
     } catch (error) {
         console.error('Upload error:', error)
         return NextResponse.json({ error: '업로드 중 오류가 발생했습니다.' }, { status: 500 })

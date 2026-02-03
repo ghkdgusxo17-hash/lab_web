@@ -117,7 +117,7 @@ export function MaterialUploadSection({ labMeetingId }: Props) {
                             >
                                 <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
                                 <p className="text-slate-600 dark:text-slate-400 font-medium">
-                                    클릭하여 파일 선택
+                                    클릭하여 파일 선택 (최대 100MB)
                                 </p>
                                 <p className="text-sm text-slate-500 mt-1">
                                     PDF, PPT, 문서, 이미지 등

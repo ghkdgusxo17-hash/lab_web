@@ -278,7 +278,7 @@ export function ResourceUpload({ workspaceId, sections }: ResourceUploadProps) {
                                     <div className="text-sm font-medium text-slate-900 dark:text-white">
                                         파일을 이곳에 드래그하거나 클릭하여 선택
                                     </div>
-                                    <p className="text-xs text-slate-500">최대 1GB</p>
+                                    <p className="text-xs text-slate-500">최대 100MB</p>
                                 </>
                             )}
                         </div>

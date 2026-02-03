@@ -18,11 +18,12 @@ interface PurchaseRequestCardProps {
         status: string
         rejectReason: string | null
         createdAt: Date
+        requesterName: string | null
         requester: {
             id: string
             name: string | null
             image: string | null
-        }
+        } | null
         items: {
             id: string
             name: string
@@ -139,7 +140,7 @@ export function PurchaseRequestCard({ request, isAdmin }: PurchaseRequestCardPro
 
                     <div className="flex flex-wrap items-center gap-4 mt-3 text-sm">
                         <div className="flex items-center gap-2">
-                            {request.requester.image ? (
+                            {request.requester?.image ? (
                                 <Image
                                     src={request.requester.image}
                                     alt=""
@@ -153,7 +154,7 @@ export function PurchaseRequestCard({ request, isAdmin }: PurchaseRequestCardPro
                                 </div>
                             )}
                             <span className="text-slate-600 dark:text-slate-400">
-                                {request.requester.name || '알 수 없음'}
+                                {request.requester?.name || request.requesterName || '알 수 없음'}
                             </span>
                         </div>
                         <span className="text-slate-400">

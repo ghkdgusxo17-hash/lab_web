@@ -10,6 +10,7 @@ import { getPublications } from "@/actions/publication"
 import { getSiteSettings } from "@/actions/settings"
 import { getProfessorInfo } from "@/actions/professor"
 import { getResources } from "@/actions/resource"
+import { getAlumniVisibilitySetting } from "@/actions/member"
 import { AdminUserList } from "@/components/admin/AdminUserList"
 import { AnnouncementManager } from "@/components/admin/AnnouncementManager"
 import { ProjectManager } from "@/components/admin/ProjectManager"
@@ -18,6 +19,7 @@ import { WorkspaceManager } from "@/components/admin/WorkspaceManager"
 import { InquiryManager } from "@/components/admin/InquiryManager"
 import { PublicationManager } from "@/components/admin/PublicationManager"
 import { VideoToggle } from "@/components/admin/VideoToggle"
+import { AlumniVisibilityToggle } from "@/components/admin/AlumniVisibilityToggle"
 import { ProfessorInfoEditor } from "@/components/admin/ProfessorInfoEditor"
 import { CollapsibleSection } from "@/components/admin/CollapsibleSection"
 import { StorageCleanupPanel } from "@/components/admin/StorageCleanupPanel"
@@ -33,7 +35,7 @@ export default async function AdminPage() {
         redirect("/")
     }
 
-    const [userResult, announcementResult, projects, workspaces, inquiryResult, publications, settings, professorInfo, resources] = await Promise.all([
+    const [userResult, announcementResult, projects, workspaces, inquiryResult, publications, settings, professorInfo, resources, alumniVisibleToPublic] = await Promise.all([
         getAllUsers(),
         getAllAnnouncements(),
         getProjectsWithMembers(),
@@ -42,7 +44,8 @@ export default async function AdminPage() {
         getPublications(),
         getSiteSettings(),
         getProfessorInfo(),
-        getResources()
+        getResources(),
+        getAlumniVisibilitySetting()
     ])
 
     if (userResult.error || !userResult.users) {
@@ -196,6 +199,7 @@ export default async function AdminPage() {
                     >
                         <div className="space-y-6">
                             <VideoToggle initialEnabled={settings.videoEnabled} />
+                            <AlumniVisibilityToggle initialVisible={alumniVisibleToPublic} />
                             <StorageCleanupPanel />
                         </div>
                     </CollapsibleSection>

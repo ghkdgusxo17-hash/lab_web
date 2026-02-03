@@ -8,11 +8,13 @@ interface Transaction {
     quantity: number
     reason: string | null
     createdAt: Date
+    performedById: string | null
+    performedByName: string | null
     performedBy: {
         id: string
         name: string | null
         image: string | null
-    }
+    } | null
 }
 
 interface InventoryTransactionListProps {
@@ -55,7 +57,7 @@ export function InventoryTransactionList({ transactions, unit }: InventoryTransa
                             )}
                         </div>
                         <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
-                            <span>{tx.performedBy.name || '알 수 없음'}</span>
+                            <span>{tx.performedBy?.name || tx.performedByName || '알 수 없음'}</span>
                             <span>•</span>
                             <span>{new Date(tx.createdAt).toLocaleString('ko-KR')}</span>
                         </div>

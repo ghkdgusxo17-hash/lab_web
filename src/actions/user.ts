@@ -178,6 +178,9 @@ export async function getUserById(userId: string) {
             isApproved: true,
             joinedAt: true,
             graduatedAt: true,
+            currentCompany: true,
+            currentPosition: true,
+            degreeObtained: true,
         }
     })
 
@@ -197,6 +200,12 @@ export async function updateUserProfile(userId: string, formData: FormData) {
     const bio = formData.get("bio") as string || null
     const researchInterests = formData.get("researchInterests") as string || null
     const image = formData.get("image") as string || null
+
+    // Alumni fields
+    const graduatedAtStr = formData.get("graduatedAt") as string
+    const currentCompany = formData.get("currentCompany") as string || null
+    const currentPosition = formData.get("currentPosition") as string || null
+    const degreeObtained = formData.get("degreeObtained") as string || null
 
     if (!name || !email) {
         return { error: "이름과 이메일은 필수입니다." }
@@ -225,6 +234,11 @@ export async function updateUserProfile(userId: string, formData: FormData) {
             bio,
             researchInterests,
             image,
+            // Alumni fields (only set if role is ALUMNI)
+            graduatedAt: role === 'ALUMNI' && graduatedAtStr ? new Date(graduatedAtStr + '-01') : null,
+            currentCompany: role === 'ALUMNI' ? currentCompany : null,
+            currentPosition: role === 'ALUMNI' ? currentPosition : null,
+            degreeObtained: role === 'ALUMNI' ? degreeObtained : null,
         }
     })
 
@@ -306,10 +320,18 @@ export async function deleteUser(userId: string) {
     })
 
     if (user?.image) {
-        // Extract file path from URL and delete from storage
-        const parts = user.image.split(`/storage/v1/object/public/${STORAGE_BUCKET}/`)
-        if (parts.length > 1) {
-            const filePath = parts[1]
+        let filePath: string | null = null
+
+        // Handle proxy URL format: /api/storage/uploads/...
+        if (user.image.includes('/api/storage/uploads/')) {
+            filePath = user.image.split('/api/storage/uploads/')[1]
+        }
+        // Handle legacy direct Supabase URL format
+        else if (user.image.includes(`/storage/v1/object/public/${STORAGE_BUCKET}/`)) {
+            filePath = user.image.split(`/storage/v1/object/public/${STORAGE_BUCKET}/`)[1]
+        }
+
+        if (filePath) {
             await supabaseAdmin.storage
                 .from(STORAGE_BUCKET)
                 .remove([filePath])

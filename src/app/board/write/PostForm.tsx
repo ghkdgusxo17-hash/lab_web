@@ -280,7 +280,7 @@ export function PostForm({ isAdmin, initialData }: PostFormProps) {
                         파일 첨부
                     </button>
                     <p className="mt-2 text-xs text-slate-500">
-                        PDF, PPT, Word, Excel, HWP, 이미지, 압축파일, 오디오, 비디오 (최대 1GB)
+                        PDF, PPT, Word, Excel, HWP, 이미지, 압축파일, 오디오, 비디오 (최대 100MB)
                     </p>
                 </div>
 

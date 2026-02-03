@@ -27,9 +27,9 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: '이미지 파일만 업로드 가능합니다.' }, { status: 400 })
         }
 
-        // Check file size (max 5GB)
-        if (file.size > 5 * 1024 * 1024 * 1024) {
-            return NextResponse.json({ error: '파일 크기는 5GB 이하여야 합니다.' }, { status: 400 })
+        // Check file size (max 100MB - Cloudflare 무료 플랜 제한)
+        if (file.size > 100 * 1024 * 1024) {
+            return NextResponse.json({ error: '파일 크기는 100MB 이하여야 합니다.' }, { status: 400 })
         }
 
         // Get current user's image to delete old one
@@ -39,8 +39,18 @@ export async function POST(request: NextRequest) {
         })
 
         // Delete old profile image if exists (and it's from our storage)
-        if (currentUser?.image && currentUser.image.includes('/storage/v1/object/public/uploads/profiles/')) {
-            const oldPath = currentUser.image.split('/storage/v1/object/public/uploads/')[1]
+        if (currentUser?.image) {
+            let oldPath: string | null = null
+
+            // Handle proxy URL format: /api/storage/uploads/profiles/...
+            if (currentUser.image.includes('/api/storage/uploads/')) {
+                oldPath = currentUser.image.split('/api/storage/uploads/')[1]
+            }
+            // Handle legacy direct Supabase URL format
+            else if (currentUser.image.includes('/storage/v1/object/public/uploads/')) {
+                oldPath = currentUser.image.split('/storage/v1/object/public/uploads/')[1]
+            }
+
             if (oldPath) {
                 await supabaseAdmin.storage
                     .from(STORAGE_BUCKET)
@@ -69,12 +79,11 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: '업로드 중 오류가 발생했습니다.' }, { status: 500 })
         }
 
-        // Get public URL
-        const { data: urlData } = supabaseAdmin.storage
-            .from(STORAGE_BUCKET)
-            .getPublicUrl(filePath)
+        // Return proxy URL instead of direct Supabase URL
+        // This allows images to be accessed via the same domain (works with Cloudflare tunnel)
+        const proxyUrl = `/api/storage/${STORAGE_BUCKET}/${filePath}`
 
-        return NextResponse.json({ url: urlData.publicUrl })
+        return NextResponse.json({ url: proxyUrl })
     } catch (error) {
         console.error('Upload error:', error)
         return NextResponse.json({ error: '업로드 중 오류가 발생했습니다.' }, { status: 500 })

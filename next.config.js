@@ -2,10 +2,10 @@
 const nextConfig = {
     // Enable React Strict Mode for development
     reactStrictMode: true,
-    // Increase body size limit for server actions (default is 1MB)
+    // Increase body size limit for server actions (100MB - Cloudflare 무료 플랜 제한)
     experimental: {
         serverActions: {
-            bodySizeLimit: '5gb',
+            bodySizeLimit: '100mb',
         },
     },
     images: {

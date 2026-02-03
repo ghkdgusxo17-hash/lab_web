@@ -23,6 +23,10 @@ interface UserEditFormProps {
         role: string
         bio: string | null
         researchInterests: string | null
+        graduatedAt: Date | null
+        currentCompany: string | null
+        currentPosition: string | null
+        degreeObtained: string | null
     }
 }
 
@@ -33,6 +37,7 @@ export function UserEditForm({ user }: UserEditFormProps) {
     const [uploading, setUploading] = useState(false)
     const [error, setError] = useState('')
     const [imageUrl, setImageUrl] = useState(user.image || '')
+    const [selectedRole, setSelectedRole] = useState(user.role)
 
     async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0]
@@ -196,7 +201,8 @@ export function UserEditForm({ user }: UserEditFormProps) {
                     <select
                         id="role"
                         name="role"
-                        defaultValue={user.role}
+                        value={selectedRole}
+                        onChange={(e) => setSelectedRole(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                         {ROLES.map((role) => (
@@ -204,6 +210,74 @@ export function UserEditForm({ user }: UserEditFormProps) {
                         ))}
                     </select>
                 </div>
+
+                {/* Alumni Fields - Only show when role is ALUMNI */}
+                {selectedRole === 'ALUMNI' && (
+                    <div className="p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl border border-emerald-200 dark:border-emerald-800 space-y-4">
+                        <h3 className="text-sm font-bold text-emerald-700 dark:text-emerald-400">졸업생 정보</h3>
+
+                        {/* Degree */}
+                        <div>
+                            <label htmlFor="degreeObtained" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                취득 학위
+                            </label>
+                            <select
+                                id="degreeObtained"
+                                name="degreeObtained"
+                                defaultValue={user.degreeObtained || ''}
+                                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="">선택</option>
+                                <option value="MS">석사</option>
+                                <option value="PhD">박사</option>
+                            </select>
+                        </div>
+
+                        {/* Graduated At */}
+                        <div>
+                            <label htmlFor="graduatedAt" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                졸업 연월
+                            </label>
+                            <input
+                                id="graduatedAt"
+                                name="graduatedAt"
+                                type="month"
+                                defaultValue={user.graduatedAt ? new Date(user.graduatedAt).toISOString().slice(0, 7) : ''}
+                                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+
+                        {/* Current Company */}
+                        <div>
+                            <label htmlFor="currentCompany" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                현재 직장
+                            </label>
+                            <input
+                                id="currentCompany"
+                                name="currentCompany"
+                                type="text"
+                                defaultValue={user.currentCompany || ''}
+                                placeholder="예: 삼성전자, KAIST"
+                                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+
+                        {/* Current Position */}
+                        <div>
+                            <label htmlFor="currentPosition" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                현재 직책
+                            </label>
+                            <input
+                                id="currentPosition"
+                                name="currentPosition"
+                                type="text"
+                                defaultValue={user.currentPosition || ''}
+                                placeholder="예: 선임연구원, 박사후연구원"
+                                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+                    </div>
+                )}
 
                 {/* Bio */}
                 <div>
