@@ -1,0 +1,172 @@
+/* Login Page - Apple-inspired minimal design */
+.login-page {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: var(--bg);
+}
+
+/* Logo Section */
+.logo-area {
+    text-align: center;
+    margin-bottom: 48px;
+    animation: fadeIn 0.6s ease;
+}
+
+.logo-circle {
+    width: 88px;
+    height: 88px;
+    border-radius: 22px;
+    background: var(--bg-elevated);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    box-shadow: var(--shadow-lg);
+}
+
+.logo-icon {
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+}
+
+.app-title {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+}
+
+.app-subtitle {
+    font-size: 15px;
+    color: var(--text-tertiary);
+    font-weight: 400;
+    letter-spacing: -0.24px;
+}
+
+/* Login Card */
+.login-area {
+    width: 100%;
+    max-width: 320px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    animation: slideUp 0.5s ease 0.1s both;
+}
+
+/* Error Message */
+.error-message {
+    width: 100%;
+    padding: 12px 16px;
+    background: rgba(255, 59, 48, 0.1);
+    color: var(--danger);
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+}
+
+/* Loading State */
+.loading-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 0;
+}
+
+.loading-area p {
+    color: var(--text-tertiary);
+    font-size: 15px;
+}
+
+/* Google Button Container */
+.google-btn-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+/* Google Sign-in Button - Apple style */
+.google-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 16px 24px;
+    background: var(--text);
+    color: var(--bg-elevated);
+    font-size: 17px;
+    font-weight: 600;
+    border-radius: var(--radius);
+    letter-spacing: -0.41px;
+    transition: all 0.2s ease;
+}
+
+.google-btn:hover {
+    opacity: 0.9;
+}
+
+.google-btn:active {
+    transform: scale(0.98);
+}
+
+.google-icon {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 16px;
+}
+
+/* Notice Text */
+.login-notice {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-tertiary);
+    margin-top: 8px;
+    line-height: 1.4;
+}
+
+/* Version */
+.version {
+    position: fixed;
+    bottom: 24px;
+    font-size: 12px;
+    color: var(--text-quaternary);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Safe area for bottom */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .version {
+        bottom: calc(24px + env(safe-area-inset-bottom));
+    }
+}

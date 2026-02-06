@@ -1,0 +1,307 @@
+/* Apple-inspired Design System */
+:root {
+    /* Colors - Refined Apple palette */
+    --primary: #007AFF;
+    --primary-hover: #0066D6;
+    --primary-light: rgba(0, 122, 255, 0.08);
+    --secondary: #5856D6;
+    --accent: #FF2D55;
+    --success: #34C759;
+    --warning: #FF9500;
+    --danger: #FF3B30;
+
+    /* Backgrounds */
+    --bg: #F2F2F7;
+    --bg-elevated: #FFFFFF;
+    --bg-grouped: #FFFFFF;
+
+    /* Text */
+    --text: #000000;
+    --text-secondary: #3C3C43;
+    --text-tertiary: #8E8E93;
+    --text-quaternary: #C7C7CC;
+
+    /* Borders & Separators */
+    --separator: rgba(60, 60, 67, 0.12);
+    --separator-opaque: #C6C6C8;
+
+    /* Shadows - Subtle and refined */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+    --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.16);
+
+    /* Radii */
+    --radius-sm: 8px;
+    --radius: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-full: 9999px;
+
+    /* Typography */
+    --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+    --font-text: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'SF Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #000000;
+        --bg-elevated: #1C1C1E;
+        --bg-grouped: #1C1C1E;
+        --text: #FFFFFF;
+        --text-secondary: rgba(235, 235, 245, 0.6);
+        --text-tertiary: rgba(235, 235, 245, 0.3);
+        --separator: rgba(84, 84, 88, 0.65);
+    }
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    font-family: var(--font-text);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    min-height: 100dvh;
+    line-height: 1.47;
+    letter-spacing: -0.022em;
+}
+
+button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    outline: none;
+    background: transparent;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.2s ease, transform 0.1s ease;
+}
+
+button:active {
+    opacity: 0.7;
+    transform: scale(0.98);
+}
+
+button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.container {
+    max-width: 428px;
+    margin: 0 auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: var(--bg);
+}
+
+/* Navigation Bar - iOS style */
+.header {
+    background: var(--bg-elevated);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 0.5px solid var(--separator);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+
+.header h1 {
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.41px;
+}
+
+.back-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 17px;
+    color: var(--primary);
+    font-weight: 400;
+    padding: 8px 4px;
+}
+
+.refresh-btn {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    border-radius: var(--radius);
+}
+
+.refresh-icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+}
+
+/* Cards - Grouped table style */
+.card {
+    background: var(--bg-grouped);
+    border-radius: var(--radius);
+    margin: 8px 16px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.card:hover {
+    box-shadow: var(--shadow);
+}
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 20px;
+    border-radius: var(--radius);
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.41px;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-hover);
+}
+
+.btn-secondary {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.w-full {
+    width: 100%;
+}
+
+/* Loading Spinner - iOS style */
+.spinner {
+    width: 24px;
+    height: 24px;
+    border: 2.5px solid var(--separator);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Badge */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    font-size: 13px;
+    font-weight: 500;
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+/* Empty/Loading/Error states */
+.empty-area, .loading-area, .error-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 24px;
+    text-align: center;
+}
+
+.empty-area p, .loading-area p {
+    margin-top: 12px;
+    font-size: 15px;
+    color: var(--text-tertiary);
+}
+
+.error-area p {
+    color: var(--danger);
+    font-weight: 500;
+}
+
+.error-area button {
+    margin-top: 16px;
+    padding: 12px 24px;
+    background: var(--primary);
+    color: white;
+    border-radius: var(--radius);
+    font-weight: 600;
+}
+
+/* Utilities */
+.text-center { text-align: center; }
+.text-secondary { color: var(--text-secondary); }
+.text-tertiary { color: var(--text-tertiary); }
+.text-primary { color: var(--primary); }
+
+/* Page content */
+.page {
+    padding: 16px;
+    padding-bottom: 34px;
+}
+
+/* Safe area */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .page {
+        padding-bottom: calc(34px + env(safe-area-inset-bottom));
+    }
+}
+
+/* Subtle animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.3s ease;
+}
+
+.animate-slide-up {
+    animation: slideUp 0.4s ease;
+}
