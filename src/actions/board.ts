@@ -17,6 +17,7 @@ export async function getPosts(type?: string) {
                     id: true,
                     name: true,
                     image: true,
+                    medalPoints: true,
                 }
             }
         },
@@ -39,6 +40,7 @@ export async function getPost(id: string) {
                     id: true,
                     name: true,
                     image: true,
+                    medalPoints: true,
                 }
             },
             comments: {
@@ -48,6 +50,7 @@ export async function getPost(id: string) {
                             id: true,
                             name: true,
                             image: true,
+                            medalPoints: true,
                         }
                     }
                 },

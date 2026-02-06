@@ -67,6 +67,11 @@ model User {
 
   // Meeting Transcription (음성 녹음 → 텍스트 변환)
   transcriptionsAsRecorder   MeetingTranscription[] @relation("TranscriptionRecorder")
+
+  // Medal System (훈장 시스템)
+  medalPoints      Int            @default(0)  // 누적 훈장 포인트 (MVP=2, 우수=1)
+  medalAwards      MedalAward[]   @relation("MedalRecipient")
+  medalAwardsGiven MedalAward[]   @relation("MedalAwarder")
 }
 
 model Account {
@@ -225,6 +230,7 @@ model LabMeeting {
   description    String?              // 설명/메모
   materials      Material[]           // 연결된 자료들 (트랜스크립션은 Material을 통해 접근)
   presenters     LabMeetingPresenter[] // 발표자들
+  medalAwards    MedalAward[]         // 훈장 수여 내역
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
 }
@@ -238,6 +244,22 @@ model LabMeetingPresenter {
   createdAt    DateTime   @default(now())
 
   @@unique([labMeetingId, userId])
+}
+
+// ============ Medal System (훈장 시스템) ============
+
+model MedalAward {
+  id            String     @id @default(cuid())
+  type          String     // "MVP" (2점) or "EXCELLENT" (1점)
+  recipientId   String
+  recipient     User       @relation("MedalRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  awarderId     String
+  awarder       User       @relation("MedalAwarder", fields: [awarderId], references: [id], onDelete: Cascade)
+  labMeetingId  String
+  labMeeting    LabMeeting @relation(fields: [labMeetingId], references: [id], onDelete: Cascade)
+  createdAt     DateTime   @default(now())
+
+  @@unique([labMeetingId, recipientId])
 }
 
 // 미팅 녹음 트랜스크립션 (음성 → 텍스트 → 요약)

@@ -5,6 +5,7 @@ import { getPost } from '@/actions/board'
 import { auth } from '@/auth'
 import { Navbar } from '@/components/layout'
 import { ArrowLeft, Clock, User, Pin, Megaphone, MessageSquare, FileText, BookOpen, Download, Music, Video } from 'lucide-react'
+import { MedalBadge } from '@/components/ui/MedalBadge'
 import { formatDate } from '@/lib/utils'
 import { PostActions } from './PostActions'
 import { CommentSection } from './CommentSection'
@@ -138,7 +139,10 @@ export default async function PostPage({ params }: PostPageProps) {
                                         <User className="w-3 h-3 text-slate-400" />
                                     </div>
                                 )}
-                                <span className="font-medium">{post.author.name || '익명'}</span>
+                                <span className="font-medium">
+                                    {post.author.name || '익명'}
+                                    {' '}<MedalBadge medalPoints={(post.author as any).medalPoints || 0} size="sm" />
+                                </span>
                             </div>
                             <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
                             <span className="flex items-center gap-1.5">

@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { FileText, Download, Trash2, User, FolderOpen, Mic, CheckCircle, Loader2, AlertCircle } from 'lucide-react'
+import { FileText, Download, Trash2, User, UserCheck, FolderOpen, Mic, CheckCircle, Loader2, AlertCircle } from 'lucide-react'
+import { MedalBadge } from '@/components/ui/MedalBadge'
 import { deleteLabMeetingMaterial } from '@/actions/lab-meeting'
+import { updateMaterialPresenter } from '@/actions/meeting-transcription'
 
 interface Material {
     id: string
@@ -19,7 +21,13 @@ interface Material {
         id: string
         name: string | null
         image: string | null
+        medalPoints?: number
     }
+    presenter: {
+        id: string
+        name: string | null
+        image: string | null
+    } | null
     transcription: {
         id: string
         status: string
@@ -67,6 +75,18 @@ function formatDate(date: Date): string {
 export function MaterialList({ materials, currentUserId, isAdmin }: Props) {
     const router = useRouter()
     const [deletingId, setDeletingId] = useState<string | null>(null)
+    const [presenterLoadingId, setPresenterLoadingId] = useState<string | null>(null)
+
+    async function handleSetPresenter(materialId: string, presenterId: string | null) {
+        setPresenterLoadingId(materialId)
+        const result = await updateMaterialPresenter(materialId, presenterId)
+        if (result.error) {
+            alert(result.error)
+        } else {
+            router.refresh()
+        }
+        setPresenterLoadingId(null)
+    }
 
     async function handleDelete(materialId: string) {
         if (!confirm('이 자료를 삭제하시겠습니까?')) return
@@ -133,9 +153,47 @@ export function MaterialList({ materials, currentUserId, isAdmin }: Props) {
                                             <User className="w-4 h-4" />
                                         )}
                                         {material.uploader.name}
+                                        {' '}<MedalBadge medalPoints={material.uploader.medalPoints || 0} size="sm" />
                                     </span>
                                     <span>{formatFileSize(material.size)}</span>
                                     <span>{formatDate(material.createdAt)}</span>
+                                </div>
+
+                                {/* Presenter info */}
+                                <div className="flex items-center gap-2 mt-1.5 text-xs">
+                                    {material.presenter ? (
+                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 font-medium">
+                                            <UserCheck className="w-3 h-3" />
+                                            발표자: {material.presenter.name}
+                                            {(material.presenter.id === currentUserId || isAdmin) && (
+                                                <button
+                                                    onClick={() => handleSetPresenter(material.id, null)}
+                                                    disabled={presenterLoadingId === material.id}
+                                                    className="ml-1 text-emerald-500 hover:text-red-500 transition-colors"
+                                                    title="발표자 해제"
+                                                >
+                                                    {presenterLoadingId === material.id ? (
+                                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                                    ) : (
+                                                        <span>×</span>
+                                                    )}
+                                                </button>
+                                            )}
+                                        </span>
+                                    ) : (
+                                        <button
+                                            onClick={() => handleSetPresenter(material.id, currentUserId)}
+                                            disabled={presenterLoadingId === material.id}
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors disabled:opacity-50"
+                                        >
+                                            {presenterLoadingId === material.id ? (
+                                                <Loader2 className="w-3 h-3 animate-spin" />
+                                            ) : (
+                                                <UserCheck className="w-3 h-3" />
+                                            )}
+                                            나를 발표자로 등록
+                                        </button>
+                                    )}
                                 </div>
 
                                 {/* Transcription Status */}

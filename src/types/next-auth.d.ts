@@ -16,6 +16,7 @@ export type ExtendedUser = DefaultSession["user"] & {
     role: string
     isAdmin: boolean
     isApproved: boolean
+    medalPoints: number
 }
 
 declare module "next-auth" {
@@ -26,5 +27,6 @@ declare module "next-auth" {
         role: string
         isAdmin: boolean
         isApproved: boolean
+        medalPoints: number
     }
 }

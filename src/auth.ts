@@ -52,6 +52,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     role: user.role,
                     isAdmin: user.isAdmin,
                     isApproved: user.isApproved,
+                    medalPoints: user.medalPoints,
                 }
             },
         }),
@@ -63,6 +64,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 token.role = user.role
                 token.isAdmin = user.isAdmin
                 token.isApproved = user.isApproved
+                token.medalPoints = user.medalPoints
             }
             // Refresh user data from DB on each request to get latest permissions
             if (trigger === "update" || !token.isApproved) {
@@ -75,6 +77,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     token.role = dbUser.role
                     token.name = dbUser.name
                     token.picture = dbUser.image
+                    token.medalPoints = dbUser.medalPoints
                 }
             }
             return token
@@ -85,6 +88,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 session.user.role = token.role as string
                 session.user.isAdmin = token.isAdmin as boolean
                 session.user.isApproved = token.isApproved as boolean
+                session.user.medalPoints = (token.medalPoints as number) || 0
             }
             return session
         },

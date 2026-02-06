@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Loader2, Send, Trash2, Edit2, X, Check } from 'lucide-react'
 import { createComment, updateComment, deleteComment } from '@/actions/comment'
+import { MedalBadge } from '@/components/ui/MedalBadge'
 
 interface Comment {
     id: string
@@ -13,6 +14,7 @@ interface Comment {
         id: string
         name: string | null
         image: string | null
+        medalPoints?: number
     }
 }
 
@@ -138,6 +140,7 @@ export function CommentSection({ postId, comments: initialComments, currentUserI
                                 <div className="flex items-center gap-2 mb-1">
                                     <span className="font-medium text-slate-900 dark:text-white text-sm">
                                         {comment.author.name || '알 수 없음'}
+                                        {' '}<MedalBadge medalPoints={comment.author.medalPoints || 0} size="sm" />
                                     </span>
                                     <span className="text-xs text-slate-400">
                                         {new Date(comment.createdAt).toLocaleDateString('ko-KR', {

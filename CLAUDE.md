@@ -18,13 +18,30 @@ npm run dev
 # 프로덕션 빌드 & 실행
 npm run build && npm run start
 
-# Prisma 스키마 변경 후
-npx prisma migrate dev --name <설명>
-npx prisma generate
+# Prisma 스키마 변경 후 (반드시 백업 먼저!)
+npm run db:migrate -- --name <설명>
+
+# DB 백업/복원
+npm run db:backup                        # 즉시 백업
+npm run db:backup -- before-migration    # 라벨 붙여서 백업
+npm run db:restore                       # 백업 목록 보기
+npm run db:restore -- <파일명>            # 특정 백업으로 복원
+
+# 자동 백업 설정 (매일 새벽 3시)
+node scripts/setup-auto-backup.js
 
 # Cloudflare Tunnel 실행
 cloudflared tunnel run --token <토큰>
 ```
+
+## DB 백업 및 안전 규칙
+
+> **절대 `prisma db push`를 사용하지 마세요.** 테이블을 drop하고 재생성하여 데이터가 손실될 수 있습니다.
+
+- 스키마 변경 시 반드시 `npm run db:migrate` 사용 (자동으로 백업 후 `prisma migrate dev` 실행)
+- 백업 파일은 `backups/` 폴더에 저장 (gitignore됨), 최대 30개 유지
+- 백업 방식: `docker exec supabase_db_Supabase pg_dump`
+- Prisma CLI 사용 시 반드시 v5: `npx --package=prisma@5 prisma ...`
 
 ## 아키텍처
 

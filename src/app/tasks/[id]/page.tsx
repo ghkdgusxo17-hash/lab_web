@@ -5,6 +5,7 @@ import { getTask } from '@/actions/task'
 import { auth } from '@/auth'
 import { Navbar } from '@/components/layout'
 import { ArrowLeft, Paperclip, Download } from 'lucide-react'
+import { MedalBadge } from '@/components/ui/MedalBadge'
 import { TaskStatusChanger } from './TaskStatusChanger'
 import { TaskCommentSection } from './TaskCommentSection'
 import { TaskAttachmentUpload } from './TaskAttachmentUpload'
@@ -123,7 +124,10 @@ export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
                                 ) : (
                                     <div className="w-6 h-6 rounded-full bg-slate-200" />
                                 )}
-                                <span>{task.author.name}</span>
+                                <span>
+                                    {task.author.name}
+                                    {' '}<MedalBadge medalPoints={(task.author as any).medalPoints || 0} size="sm" />
+                                </span>
                             </div>
                             <span>•</span>
                             <span>{formatDate(task.createdAt)}</span>

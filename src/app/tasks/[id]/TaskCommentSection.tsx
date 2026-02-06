@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { MessageSquare } from 'lucide-react'
 import { addTaskComment } from '@/actions/task'
+import { MedalBadge } from '@/components/ui/MedalBadge'
 
 interface Comment {
     id: string
@@ -11,6 +12,7 @@ interface Comment {
         id: string
         name: string | null
         image: string | null
+        medalPoints?: number
     }
     createdAt: string
 }
@@ -73,6 +75,7 @@ export function TaskCommentSection({ taskId, comments, canComment }: TaskComment
                                 <div className="flex items-center gap-2 mb-1">
                                     <span className="font-medium text-slate-900 dark:text-white text-sm">
                                         {comment.author.name || '익명'}
+                                        {' '}<MedalBadge medalPoints={comment.author.medalPoints || 0} size="sm" />
                                     </span>
                                     <span className="text-xs text-slate-500">
                                         {formatDate(comment.createdAt)}

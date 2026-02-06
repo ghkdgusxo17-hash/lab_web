@@ -8,6 +8,7 @@ import { Menu, X, FlaskConical, LogOut, User, ChevronDown, Settings, Shield, Mes
 import { Session } from 'next-auth'
 import { signOutAction } from '@/actions/user'
 import { useTheme } from '@/components/ThemeProvider'
+import { MedalBadge } from '@/components/ui/MedalBadge'
 
 interface NavbarClientProps {
     session: Session | null
@@ -224,7 +225,10 @@ export function NavbarClient({ session, unreadInquiryCount = 0, pendingCounts }:
                                             </div>
                                         )}
                                         <div className="text-sm text-left">
-                                            <p className="font-bold text-slate-900 dark:text-white leading-none mb-1">{user.name}</p>
+                                            <p className="font-bold text-slate-900 dark:text-white leading-none mb-1">
+                                                {user.name}
+                                                {' '}<MedalBadge medalPoints={(user as any).medalPoints || 0} size="sm" />
+                                            </p>
                                             {getStatusBadge(user)}
                                         </div>
                                         <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
@@ -375,7 +379,10 @@ export function NavbarClient({ session, unreadInquiryCount = 0, pendingCounts }:
                                             </div>
                                         )}
                                         <div>
-                                            <p className="font-bold text-slate-900 dark:text-white">{user.name}</p>
+                                            <p className="font-bold text-slate-900 dark:text-white">
+                                                {user.name}
+                                                {' '}<MedalBadge medalPoints={(user as any).medalPoints || 0} size="sm" />
+                                            </p>
                                             <div className="mt-1">{getStatusBadge(user)}</div>
                                         </div>
                                     </div>

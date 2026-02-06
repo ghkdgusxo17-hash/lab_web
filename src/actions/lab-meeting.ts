@@ -13,7 +13,7 @@ export async function getLabMeetings() {
             presenters: {
                 include: {
                     user: {
-                        select: { id: true, name: true, image: true }
+                        select: { id: true, name: true, image: true, medalPoints: true }
                     }
                 }
             },
@@ -45,13 +45,26 @@ export async function getLabMeeting(id: string) {
             presenters: {
                 include: {
                     user: {
+                        select: { id: true, name: true, image: true, medalPoints: true }
+                    }
+                }
+            },
+            medalAwards: {
+                include: {
+                    recipient: {
                         select: { id: true, name: true, image: true }
+                    },
+                    awarder: {
+                        select: { id: true, name: true }
                     }
                 }
             },
             materials: {
                 include: {
                     uploader: {
+                        select: { id: true, name: true, image: true, medalPoints: true }
+                    },
+                    presenter: {
                         select: { id: true, name: true, image: true }
                     },
                     transcription: {

@@ -416,13 +416,17 @@ export async function updateMaterialPresenter(materialId: string, presenterId: s
     }
 
     try {
-        await prisma.material.update({
+        const material = await prisma.material.update({
             where: { id: materialId },
-            data: { presenterId }
+            data: { presenterId },
+            select: { labMeetingId: true }
         })
 
         revalidatePath('/materials')
         revalidatePath('/meetings')
+        if (material.labMeetingId) {
+            revalidatePath(`/materials/lab-meeting/${material.labMeetingId}`)
+        }
         return { success: true }
     } catch (error) {
         console.error('Update presenter error:', error)

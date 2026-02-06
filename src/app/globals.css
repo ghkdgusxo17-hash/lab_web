@@ -221,6 +221,44 @@
   animation-delay: 4s;
 }
 
+/* ============ Medal System Styles ============ */
+.medal-bronze {
+  filter: drop-shadow(0 0 2px #cd7f32);
+}
+
+.medal-silver {
+  filter: drop-shadow(0 0 3px #c0c0c0);
+}
+
+.medal-gold {
+  filter: drop-shadow(0 0 4px #ffd700);
+  animation: medal-glow 2s ease-in-out infinite;
+}
+
+.medal-legendary {
+  animation: medal-rainbow 3s linear infinite;
+  filter: drop-shadow(0 0 6px #ff6b6b);
+}
+
+@keyframes medal-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 4px #ffd700);
+  }
+  50% {
+    filter: drop-shadow(0 0 8px #ffd700);
+  }
+}
+
+@keyframes medal-rainbow {
+  0% { filter: drop-shadow(0 0 6px #ff6b6b); }
+  16% { filter: drop-shadow(0 0 6px #ffa500); }
+  33% { filter: drop-shadow(0 0 6px #ffd700); }
+  50% { filter: drop-shadow(0 0 6px #4caf50); }
+  66% { filter: drop-shadow(0 0 6px #2196f3); }
+  83% { filter: drop-shadow(0 0 6px #9c27b0); }
+  100% { filter: drop-shadow(0 0 6px #ff6b6b); }
+}
+
 /* Sharp theme specific overrides */
 .theme-sharp .hero-blob {
   display: none;

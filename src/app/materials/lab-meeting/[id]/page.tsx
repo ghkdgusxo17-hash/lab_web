@@ -8,6 +8,8 @@ import { getLabMeeting, getApprovedMembers } from '@/actions/lab-meeting'
 import { MaterialUploadSection } from './MaterialUploadSection'
 import { MaterialList } from './MaterialList'
 import { DeleteMeetingButton } from './DeleteMeetingButton'
+import { MedalAwardSection } from './MedalAwardSection'
+import { MedalBadge } from '@/components/ui/MedalBadge'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,6 +49,18 @@ export default async function LabMeetingDetailPage({ params }: { params: Promise
     const canUpload = session.user.isApproved || session.user.isAdmin
     const canEdit = session.user.isApproved || session.user.isAdmin
     const canDelete = session.user.isAdmin
+
+    // 자료별 발표자 목록 (중복 제거)
+    const materialPresenters = (() => {
+        const map = new Map<string, { id: string; name: string | null; image: string | null }>()
+        for (const m of meeting.materials) {
+            const presenter = (m as any).presenter
+            if (presenter) {
+                map.set(presenter.id, presenter)
+            }
+        }
+        return Array.from(map.values())
+    })()
 
     return (
         <>
@@ -100,6 +114,7 @@ export default async function LabMeetingDetailPage({ params }: { params: Promise
                                                         <div className="w-5 h-5 rounded-full bg-slate-300 dark:bg-slate-600" />
                                                     )}
                                                     {presenter.name}
+                                                    {' '}<MedalBadge medalPoints={(presenter as any).medalPoints || 0} size="sm" />
                                                 </span>
                                             ))}
                                         </div>
@@ -122,6 +137,15 @@ export default async function LabMeetingDetailPage({ params }: { params: Promise
                             </div>
                         </div>
                     </div>
+
+                    {/* Medal Award Section (Admin only) */}
+                    {session.user.isAdmin && (
+                        <MedalAwardSection
+                            labMeetingId={id}
+                            presenters={materialPresenters}
+                            existingAwards={(meeting as any).medalAwards || []}
+                        />
+                    )}
 
                     {/* Upload Section */}
                     {canUpload && (

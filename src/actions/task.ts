@@ -40,7 +40,7 @@ export async function getTasks(filters?: { status?: string; category?: string; p
     const tasks = await prisma.task.findMany({
         where,
         include: {
-            author: { select: { id: true, name: true, image: true } },
+            author: { select: { id: true, name: true, image: true, medalPoints: true } },
             project: { select: { id: true, name: true } },
             _count: { select: { comments: true, attachments: true } }
         },
@@ -61,7 +61,7 @@ export async function getTask(id: string) {
     const task = await prisma.task.findUnique({
         where: { id },
         include: {
-            author: { select: { id: true, name: true, image: true } },
+            author: { select: { id: true, name: true, image: true, medalPoints: true } },
             project: { select: { id: true, name: true } },
             comments: {
                 include: {
