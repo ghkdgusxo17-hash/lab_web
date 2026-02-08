@@ -7,7 +7,7 @@ export default defineConfig({
         react(),
         VitePWA({
             registerType: 'autoUpdate',
-            includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
+            includeAssets: ['icon-192.png', 'icon-512.png'],
             manifest: {
                 name: 'Lab Recorder - 발표 녹음 & AI 요약',
                 short_name: 'Lab Recorder',
@@ -18,9 +18,16 @@ export default defineConfig({
                 orientation: 'portrait',
                 icons: [
                     {
-                        src: 'favicon.svg',
-                        sizes: 'any',
-                        type: 'image/svg+xml'
+                        src: 'icon-192.png',
+                        sizes: '192x192',
+                        type: 'image/png',
+                        purpose: 'any'
+                    },
+                    {
+                        src: 'icon-512.png',
+                        sizes: '512x512',
+                        type: 'image/png',
+                        purpose: 'any'
                     }
                 ]
             },

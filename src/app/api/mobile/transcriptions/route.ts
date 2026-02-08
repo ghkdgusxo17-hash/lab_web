@@ -19,10 +19,13 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        // 자료 확인
+        // 자료 확인 (발표자 이름도 함께 조회)
         const material = await prisma.material.findUnique({
             where: { id: materialId },
-            include: { transcription: true },
+            include: {
+                transcription: true,
+                presenter: { select: { name: true } },
+            },
         })
 
         if (!material) {
@@ -71,7 +74,8 @@ export async function POST(request: NextRequest) {
         })
 
         // 백그라운드에서 트랜스크립션 처리 시작
-        processTranscription(transcription.id, filePath).catch(err => {
+        const presenterName = material.presenter?.name || null
+        processTranscription(transcription.id, filePath, presenterName).catch(err => {
             console.error('Transcription processing error:', err)
         })
 
@@ -95,50 +99,79 @@ export async function POST(request: NextRequest) {
 }
 
 // 백그라운드 처리 함수
-async function processTranscription(transcriptionId: string, audioPath: string) {
-    const TRANSCRIPTION_SERVICE_URL = process.env.TRANSCRIPTION_SERVICE_URL || 'http://localhost:5000'
+async function processTranscription(transcriptionId: string, audioPath: string, presenterName: string | null = null) {
+    const TRANSCRIPTION_SERVICE_URL = process.env.TRANSCRIPTION_SERVICE_URL || 'http://localhost:8000'
 
     try {
         // 상태 업데이트: 처리 중
         await prisma.meetingTranscription.update({
             where: { id: transcriptionId },
-            data: { status: 'PROCESSING' },
+            data: { status: 'PROCESSING', jobId: null },
         })
 
-        // 트랜스크립션 서비스 호출
+        // 1. 오디오 파일을 /process 엔드포인트로 업로드
         const { readFileSync } = await import('fs')
         const audioBuffer = readFileSync(audioPath)
         const audioBlob = new Blob([audioBuffer])
 
         const formData = new FormData()
-        formData.append('audio', audioBlob, path.basename(audioPath))
-
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 30 * 60 * 1000) // 30분 타임아웃
-
-        const response = await fetch(`${TRANSCRIPTION_SERVICE_URL}/transcribe`, {
-            method: 'POST',
-            body: formData,
-            signal: controller.signal,
-        })
-
-        clearTimeout(timeoutId)
-
-        if (!response.ok) {
-            throw new Error(`Transcription service error: ${response.status}`)
+        formData.append('file', audioBlob, path.basename(audioPath))
+        // 발표자 이름을 context로 전달
+        if (presenterName) {
+            formData.append('context', `presenter:${presenterName}`)
         }
 
-        const result = await response.json()
+        const uploadResponse = await fetch(`${TRANSCRIPTION_SERVICE_URL}/process`, {
+            method: 'POST',
+            body: formData,
+        })
 
-        // 결과 저장
+        if (!uploadResponse.ok) {
+            throw new Error(`Transcription service upload error: ${uploadResponse.status}`)
+        }
+
+        const { job_id } = await uploadResponse.json()
+
+        // job_id 저장
         await prisma.meetingTranscription.update({
             where: { id: transcriptionId },
-            data: {
-                status: 'COMPLETED',
-                transcript: result.transcript,
-                summary: result.summary,
-            },
+            data: { jobId: job_id },
         })
+
+        // 2. 상태 폴링 (최대 30분, 10초 간격)
+        const MAX_POLLS = 180
+        const POLL_INTERVAL = 10000 // 10초
+
+        for (let i = 0; i < MAX_POLLS; i++) {
+            await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL))
+
+            const statusResponse = await fetch(`${TRANSCRIPTION_SERVICE_URL}/status/${job_id}`)
+            const statusData = await statusResponse.json()
+
+            if (statusData.status === 'completed') {
+                // 3. 완료 시 결과 가져오기
+                const resultResponse = await fetch(`${TRANSCRIPTION_SERVICE_URL}/result/${job_id}`)
+                const resultData = await resultResponse.json()
+
+                await prisma.meetingTranscription.update({
+                    where: { id: transcriptionId },
+                    data: {
+                        status: 'COMPLETED',
+                        transcript: resultData.transcript ? JSON.stringify(resultData.transcript) : null,
+                        summary: resultData.summary || null,
+                    },
+                })
+                return
+            }
+
+            if (statusData.status === 'failed') {
+                throw new Error(statusData.error || 'Transcription failed')
+            }
+
+            // pending, transcribing, summarizing → 계속 폴링
+        }
+
+        throw new Error('Transcription timed out (30 minutes)')
     } catch (error: any) {
         console.error('Transcription processing failed:', error)
 

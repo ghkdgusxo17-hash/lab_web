@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { uploadTranscription } from '../api/client'
 import './RecordPage.css'
@@ -19,10 +19,28 @@ export default function RecordPage() {
     const [duration, setDuration] = useState(0)
     const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
     const [error, setError] = useState<string | null>(null)
+    const [audioLevel, setAudioLevel] = useState(0)
 
     const mediaRecorder = useRef<MediaRecorder | null>(null)
     const audioChunks = useRef<Blob[]>([])
     const timerRef = useRef<number | null>(null)
+    const audioContextRef = useRef<AudioContext | null>(null)
+    const analyserRef = useRef<AnalyserNode | null>(null)
+    const animFrameRef = useRef<number | null>(null)
+    const streamRef = useRef<MediaStream | null>(null)
+
+    const cleanupAudio = useCallback(() => {
+        if (animFrameRef.current) {
+            cancelAnimationFrame(animFrameRef.current)
+            animFrameRef.current = null
+        }
+        if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+            audioContextRef.current.close()
+            audioContextRef.current = null
+        }
+        analyserRef.current = null
+        setAudioLevel(0)
+    }, [])
 
     useEffect(() => {
         return () => {
@@ -30,13 +48,47 @@ export default function RecordPage() {
             if (mediaRecorder.current && mediaRecorder.current.state !== 'inactive') {
                 mediaRecorder.current.stop()
             }
+            cleanupAudio()
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop())
+            }
         }
+    }, [cleanupAudio])
+
+    // 실시간 음량 측정
+    const startAudioAnalysis = useCallback((stream: MediaStream) => {
+        const audioContext = new AudioContext()
+        const analyser = audioContext.createAnalyser()
+        analyser.fftSize = 256
+        analyser.smoothingTimeConstant = 0.5
+
+        const source = audioContext.createMediaStreamSource(stream)
+        source.connect(analyser)
+
+        audioContextRef.current = audioContext
+        analyserRef.current = analyser
+
+        const dataArray = new Uint8Array(analyser.frequencyBinCount)
+
+        const updateLevel = () => {
+            if (!analyserRef.current) return
+            analyserRef.current.getByteFrequencyData(dataArray)
+            // 평균 음량 계산 (0~255 → 0~1)
+            const avg = dataArray.reduce((sum, v) => sum + v, 0) / dataArray.length
+            setAudioLevel(Math.min(avg / 128, 1))
+            animFrameRef.current = requestAnimationFrame(updateLevel)
+        }
+        updateLevel()
     }, [])
 
     const startRecording = async () => {
         try {
             setError(null)
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+            streamRef.current = stream
+
+            // 음량 분석 시작
+            startAudioAnalysis(stream)
 
             const recorder = new MediaRecorder(stream, {
                 mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4'
@@ -54,6 +106,7 @@ export default function RecordPage() {
                 const blob = new Blob(audioChunks.current, { type: recorder.mimeType })
                 setAudioBlob(blob)
                 stream.getTracks().forEach(track => track.stop())
+                cleanupAudio()
             }
 
             mediaRecorder.current = recorder
@@ -142,6 +195,11 @@ export default function RecordPage() {
         }
     }
 
+    // 음량에 따른 시각 효과
+    const glowSize = state === 'recording' ? 8 + audioLevel * 24 : 0
+    const glowOpacity = state === 'recording' ? 0.1 + audioLevel * 0.3 : 0
+    const borderWidth = state === 'recording' ? 3 + audioLevel * 3 : 3
+
     return (
         <div className="record-page">
             <button className="close-btn" onClick={handleClose}>✕</button>
@@ -152,10 +210,42 @@ export default function RecordPage() {
             </div>
 
             <div className="timer-area">
-                <div className={`timer-circle ${state === 'recording' ? 'active' : ''}`}>
+                <div
+                    className={`timer-circle ${state === 'recording' ? 'active' : ''}`}
+                    style={state === 'recording' ? {
+                        borderWidth: `${borderWidth}px`,
+                        boxShadow: `0 0 0 ${glowSize}px rgba(255, 59, 48, ${glowOpacity}), 0 8px 32px rgba(0,0,0,0.1)`,
+                    } : undefined}
+                >
                     <span className="timer-text">{formatTime(duration)}</span>
                     {state === 'recording' && <div className="recording-dot" />}
                 </div>
+
+                {/* 음량 바 */}
+                {(state === 'recording' || state === 'paused') && (
+                    <div className="audio-level-container">
+                        <div className="audio-level-bars">
+                            {Array.from({ length: 20 }).map((_, i) => {
+                                const threshold = i / 20
+                                const isActive = state === 'recording' && audioLevel > threshold
+                                const barColor = i < 12 ? 'var(--tint)' : i < 16 ? '#ffa500' : 'var(--danger)'
+                                return (
+                                    <div
+                                        key={i}
+                                        className="audio-level-bar"
+                                        style={{
+                                            backgroundColor: isActive ? barColor : 'var(--separator)',
+                                            opacity: isActive ? 1 : 0.3,
+                                        }}
+                                    />
+                                )
+                            })}
+                        </div>
+                        <span className="audio-level-label">
+                            {state === 'paused' ? '일시정지' : audioLevel > 0.05 ? '음성 감지 중' : '대기 중...'}
+                        </span>
+                    </div>
+                )}
             </div>
 
             {error && <p className="error-message">{error}</p>}

@@ -142,22 +142,50 @@ export default function MeetingDetailPage() {
                                         </p>
                                     </div>
                                 </div>
-                                <button
-                                    className="status-btn"
-                                    style={{
-                                        borderColor: status.color,
-                                        backgroundColor: `${status.color}15`,
-                                        color: status.color,
-                                    }}
-                                    onClick={() => handleMaterialClick(material)}
-                                    disabled={isDisabled}
-                                >
-                                    <span>{status.icon}</span>
-                                    <span>{status.text}</span>
-                                    {transcriptionStatus === 'PROCESSING' && (
-                                        <span className="spinner-small" />
-                                    )}
-                                </button>
+                                {transcriptionStatus === 'COMPLETED' ? (
+                                    <div className="material-actions">
+                                        <button
+                                            className="status-btn"
+                                            style={{
+                                                borderColor: status.color,
+                                                backgroundColor: `${status.color}15`,
+                                                color: status.color,
+                                            }}
+                                            onClick={() => handleMaterialClick(material)}
+                                        >
+                                            <span>{status.icon}</span>
+                                            <span>{status.text}</span>
+                                        </button>
+                                        <button
+                                            className="status-btn rerecord-btn"
+                                            onClick={() => {
+                                                if (confirm('기존 녹음/요약이 삭제되고 새로 녹음됩니다. 계속할까요?')) {
+                                                    navigate(`/record/${material.id}`)
+                                                }
+                                            }}
+                                        >
+                                            <span>🎤</span>
+                                            <span>다시 녹음</span>
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        className="status-btn"
+                                        style={{
+                                            borderColor: status.color,
+                                            backgroundColor: `${status.color}15`,
+                                            color: status.color,
+                                        }}
+                                        onClick={() => handleMaterialClick(material)}
+                                        disabled={isDisabled}
+                                    >
+                                        <span>{status.icon}</span>
+                                        <span>{status.text}</span>
+                                        {transcriptionStatus === 'PROCESSING' && (
+                                            <span className="spinner-small" />
+                                        )}
+                                    </button>
+                                )}
                             </div>
                         )
                     })

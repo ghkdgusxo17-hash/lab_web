@@ -135,6 +135,22 @@
     color: var(--warning);
 }
 
+/* Material Actions (completed state) */
+.material-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.material-actions .status-btn {
+    flex: 1;
+}
+
+.rerecord-btn {
+    border-color: var(--text-tertiary) !important;
+    background-color: rgba(142, 142, 147, 0.1) !important;
+    color: var(--text-secondary) !important;
+}
+
 /* Small Spinner */
 .spinner-small {
     width: 16px;

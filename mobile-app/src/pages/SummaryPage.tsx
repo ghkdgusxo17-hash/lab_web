@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getTranscription, Transcription } from '../api/client'
 import './SummaryPage.css'
@@ -61,6 +61,69 @@ function parseTranscript(transcript: string | null): TranscriptSegment[] {
     }
 
     return segments
+}
+
+function AudioPlayer({ src }: { src: string }) {
+    const audioRef = useRef<HTMLAudioElement>(null)
+    const progressRef = useRef<HTMLDivElement>(null)
+    const [playing, setPlaying] = useState(false)
+    const [currentTime, setCurrentTime] = useState(0)
+    const [dur, setDur] = useState(0)
+
+    const toggle = useCallback(() => {
+        const a = audioRef.current
+        if (!a) return
+        if (playing) { a.pause() } else { a.play() }
+        setPlaying(!playing)
+    }, [playing])
+
+    const seek = useCallback((e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+        const a = audioRef.current
+        const bar = progressRef.current
+        if (!a || !bar || !dur) return
+        const rect = bar.getBoundingClientRect()
+        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
+        const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
+        a.currentTime = ratio * dur
+    }, [dur])
+
+    const pct = dur > 0 ? (currentTime / dur) * 100 : 0
+
+    return (
+        <div className="custom-audio-player">
+            <audio
+                ref={audioRef}
+                src={src}
+                preload="metadata"
+                onTimeUpdate={() => setCurrentTime(audioRef.current?.currentTime || 0)}
+                onLoadedMetadata={() => setDur(audioRef.current?.duration || 0)}
+                onEnded={() => setPlaying(false)}
+            />
+            <button className="play-btn" onClick={toggle}>
+                {playing ? (
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                        <rect x="4" y="3" width="4.5" height="14" rx="1.2" />
+                        <rect x="11.5" y="3" width="4.5" height="14" rx="1.2" />
+                    </svg>
+                ) : (
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M5 3.5a1 1 0 0 1 1.53-.85l10 6.5a1 1 0 0 1 0 1.7l-10 6.5A1 1 0 0 1 5 16.5v-13z" />
+                    </svg>
+                )}
+            </button>
+            <span className="audio-time">{formatTime(currentTime)}</span>
+            <div
+                className="progress-bar"
+                ref={progressRef}
+                onClick={seek}
+                onTouchMove={seek}
+            >
+                <div className="progress-fill" style={{ width: `${pct}%` }} />
+                <div className="progress-thumb" style={{ left: `${pct}%` }} />
+            </div>
+            <span className="audio-time">{formatTime(dur)}</span>
+        </div>
+    )
 }
 
 export default function SummaryPage() {
@@ -223,14 +286,13 @@ export default function SummaryPage() {
                 )}
 
                 {transcription.audioUrl && (
-                    <a
-                        href={transcription.audioUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-outline w-full"
-                    >
-                        <span>▶️</span> 오디오 재생
-                    </a>
+                    <div className="card audio-card">
+                        <div className="section-header">
+                            <span className="emoji">🔊</span>
+                            <h3>녹음 오디오</h3>
+                        </div>
+                        <AudioPlayer src={`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api${transcription.audioUrl}`} />
+                    </div>
                 )}
             </div>
         </div>

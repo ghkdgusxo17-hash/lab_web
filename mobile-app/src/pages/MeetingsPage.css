@@ -1,4 +1,4 @@
-/* Meetings Page - Apple-inspired design */
+/* Meetings Page */
 .meetings-page {
     min-height: 100vh;
     min-height: 100dvh;
@@ -7,9 +7,17 @@
 
 /* Header with user info */
 .meetings-page .header {
-    background: var(--bg-elevated);
+    background: rgba(245, 245, 247, 0.82);
     padding: 16px 20px;
     border-bottom: 0.5px solid var(--separator);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+
+@media (prefers-color-scheme: dark) {
+    .meetings-page .header {
+        background: rgba(10, 10, 15, 0.82);
+    }
 }
 
 .user-info {
@@ -21,15 +29,14 @@
     font-size: 13px;
     color: var(--text-tertiary);
     margin-bottom: 2px;
-    letter-spacing: -0.08px;
 }
 
 .user-name {
     font-family: var(--font-display);
-    font-size: 17px;
-    font-weight: 600;
+    font-size: 18px;
+    font-weight: 700;
     color: var(--text);
-    letter-spacing: -0.41px;
+    letter-spacing: -0.02em;
 }
 
 /* Logout Button */
@@ -38,13 +45,9 @@
     background: var(--primary-light);
     border-radius: var(--radius-sm);
     color: var(--primary);
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     transition: all 0.2s ease;
-}
-
-.logout-btn:hover {
-    background: rgba(0, 122, 255, 0.15);
 }
 
 /* Section Header */
@@ -52,29 +55,15 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 24px 20px 12px;
+    padding: 24px 20px 14px;
 }
 
 .section-title {
     font-family: var(--font-display);
-    font-size: 22px;
-    font-weight: 700;
+    font-size: 24px;
+    font-weight: 800;
     color: var(--text);
-    letter-spacing: -0.26px;
-}
-
-.refresh-btn {
-    width: 44px;
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--primary);
-    border-radius: var(--radius);
-}
-
-.refresh-btn:disabled {
-    opacity: 0.4;
+    letter-spacing: -0.03em;
 }
 
 .refresh-btn .spinner {
@@ -82,19 +71,14 @@
     height: 20px;
 }
 
-.refresh-icon {
-    width: 24px;
-    height: 24px;
-    object-fit: contain;
-}
-
 /* Error Card */
 .error-card {
-    background: rgba(255, 59, 48, 0.1);
+    background: var(--danger-light);
     border-radius: var(--radius);
-    padding: 16px;
+    padding: 18px;
     text-align: center;
     margin: 0 16px 16px;
+    border: 1px solid rgba(239, 68, 68, 0.1);
 }
 
 .error-card p {
@@ -117,7 +101,7 @@
 .meeting-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     padding: 0 16px 24px;
 }
 
@@ -125,38 +109,53 @@
 .meeting-card {
     background: var(--bg-grouped);
     border-radius: var(--radius);
-    padding: 16px;
+    padding: 18px;
     cursor: pointer;
     transition: all 0.2s ease;
     box-shadow: var(--shadow-sm);
+    border: 0.5px solid var(--border-subtle);
+    position: relative;
 }
 
-.meeting-card:hover {
-    box-shadow: var(--shadow);
+.meeting-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 12px;
+    bottom: 12px;
+    width: 3px;
+    background: var(--primary);
+    border-radius: 0 2px 2px 0;
+    opacity: 0;
+    transition: opacity 0.2s ease;
 }
 
 .meeting-card:active {
     transform: scale(0.98);
 }
 
+.meeting-card:active::before {
+    opacity: 1;
+}
+
 .meeting-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
 }
 
 .meeting-date {
     font-size: 13px;
     color: var(--primary);
     font-weight: 600;
-    letter-spacing: -0.08px;
+    letter-spacing: -0.01em;
 }
 
 .badge {
-    background: rgba(52, 199, 89, 0.12);
+    background: var(--success-light);
     color: var(--success);
-    padding: 4px 10px;
+    padding: 3px 10px;
     border-radius: var(--radius-full);
     font-size: 12px;
     font-weight: 600;
@@ -165,23 +164,22 @@
 .meeting-title {
     font-family: var(--font-display);
     font-size: 17px;
-    font-weight: 600;
+    font-weight: 700;
     margin-bottom: 6px;
     color: var(--text);
     line-height: 1.35;
-    letter-spacing: -0.41px;
+    letter-spacing: -0.02em;
 }
 
 .meeting-desc {
-    font-size: 15px;
+    font-size: 14px;
     color: var(--text-tertiary);
     margin-bottom: 12px;
-    line-height: 1.47;
+    line-height: 1.5;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    letter-spacing: -0.24px;
 }
 
 .meeting-presenters {
@@ -200,7 +198,7 @@
 
 .meeting-presenters span:last-child {
     color: var(--text-secondary);
-    font-weight: 500;
+    font-weight: 600;
 }
 
 /* Loading & Empty states */

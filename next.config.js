@@ -8,6 +8,17 @@ const nextConfig = {
             bodySizeLimit: '100mb',
         },
     },
+    async headers() {
+        return [
+            {
+                source: '/uploads/:path*',
+                headers: [
+                    { key: 'Access-Control-Allow-Origin', value: '*' },
+                    { key: 'Access-Control-Allow-Methods', value: 'GET' },
+                ],
+            },
+        ]
+    },
     images: {
         remotePatterns: [
             {
