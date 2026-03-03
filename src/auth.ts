@@ -67,9 +67,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 token.medalPoints = user.medalPoints
             }
             // Refresh user data from DB on each request to get latest permissions
+            const userId = (token.id ?? token.sub) as string
             if (trigger === "update" || !token.isApproved) {
                 const dbUser = await prisma.user.findUnique({
-                    where: { id: token.id as string },
+                    where: { id: userId },
                 })
                 if (dbUser) {
                     token.isAdmin = dbUser.isAdmin
@@ -84,7 +85,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         },
         async session({ session, token }) {
             if (session.user) {
-                session.user.id = token.id as string
+                session.user.id = (token.id ?? token.sub) as string
                 session.user.role = token.role as string
                 session.user.isAdmin = token.isAdmin as boolean
                 session.user.isApproved = token.isApproved as boolean

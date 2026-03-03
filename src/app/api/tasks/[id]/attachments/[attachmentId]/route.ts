@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { readFile } from 'fs/promises'
 import { join } from 'path'
-import { existsSync } from 'fs'
+import { existsSync, statSync, createReadStream } from 'fs'
+import { Readable } from 'stream'
 
 export const dynamic = 'force-dynamic'
 
@@ -51,14 +51,18 @@ export async function GET(
     }
 
     try {
-        const fileBuffer = await readFile(filepath)
+        const stat = statSync(filepath)
+        const nodeStream = createReadStream(filepath)
+        const webStream = Readable.toWeb(nodeStream) as ReadableStream
 
         const headers = new Headers()
         headers.set('Content-Type', attachment.mimeType || 'application/octet-stream')
         headers.set('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(attachment.filename)}`)
-        headers.set('Content-Length', attachment.size.toString())
+        headers.set('Content-Length', stat.size.toString())
+        headers.set('Cache-Control', 'no-store, no-transform')
+        headers.set('X-Accel-Buffering', 'no')
 
-        return new NextResponse(fileBuffer, { status: 200, headers })
+        return new NextResponse(webStream, { status: 200, headers })
     } catch (error) {
         console.error('File read error:', error)
         return NextResponse.json({ error: '파일 읽기 오류' }, { status: 500 })

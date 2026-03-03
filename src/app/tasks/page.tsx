@@ -7,6 +7,7 @@ import { auth } from '@/auth'
 import { Navbar } from '@/components/layout'
 import { Plus, ClipboardList, FolderKanban, FileText, FlaskConical, MoreHorizontal, MessageSquare, Paperclip } from 'lucide-react'
 import { AdminMemberSelector } from './AdminMemberSelector'
+import { UserAvatar } from '@/components/ui/UserAvatar'
 
 export const dynamic = 'force-dynamic'
 
@@ -216,11 +217,7 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
                                                     </h3>
                                                     <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
                                                         <span className="flex items-center gap-1">
-                                                            {task.author.image ? (
-                                                                <img src={task.author.image} alt="" className="w-4 h-4 rounded-full" />
-                                                            ) : (
-                                                                <div className="w-4 h-4 rounded-full bg-slate-200" />
-                                                            )}
+                                                            <UserAvatar src={task.author.image} name={task.author.name} size={16} />
                                                             {task.author.name}
                                                         </span>
                                                         <span>{formatDate(task.updatedAt)}</span>

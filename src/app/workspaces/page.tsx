@@ -76,9 +76,13 @@ export default async function WorkspacesPage() {
                                     className="group bg-white dark:bg-slate-900 t-rounded-2xl p-6 border border-slate-200 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500 shadow-sm hover:shadow-lg transition-all"
                                 >
                                     <div className="flex items-start justify-between mb-4">
-                                        <div className="w-12 h-12 t-rounded-xl logo-container">
-                                            <Users className="w-6 h-6 text-white" />
-                                        </div>
+                                        {workspace.image ? (
+                                            <img src={workspace.image} alt="" className="w-12 h-12 rounded-xl object-cover" />
+                                        ) : (
+                                            <div className="w-12 h-12 t-rounded-xl logo-container">
+                                                <Users className="w-6 h-6 text-white" />
+                                            </div>
+                                        )}
                                         {workspace.isLeader && (
                                             <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-bold rounded-full">
                                                 <Crown className="w-3 h-3" />

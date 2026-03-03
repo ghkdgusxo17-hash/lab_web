@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
+import { supabaseAdmin } from '@/lib/supabase'
+import { STORAGE_BUCKET, getProxyUrl, extractStoragePath } from '@/lib/storage-constants'
 
 // Get my workspaces (where I'm a member)
 export async function getMyWorkspaces() {
@@ -193,6 +195,76 @@ export async function updateWorkspace(id: string, formData: FormData) {
     return { success: true }
 }
 
+// Update workspace image (Leader/Admin only)
+export async function updateWorkspaceImage(workspaceId: string, formData: FormData) {
+    const session = await auth()
+    if (!session?.user) return { error: '로그인이 필요합니다.' }
+
+    const membership = await prisma.workspaceMember.findUnique({
+        where: { workspaceId_userId: { workspaceId, userId: session.user.id } }
+    })
+    if (!membership?.isLeader && !session.user.isAdmin) {
+        return { error: '팀장만 사진을 변경할 수 있습니다.' }
+    }
+
+    const file = formData.get('image') as File | null
+    if (!file || file.size === 0) return { error: '파일을 선택해주세요.' }
+
+    // 기존 이미지 삭제
+    const workspace = await prisma.workspace.findUnique({ where: { id: workspaceId } })
+    if (workspace?.image) {
+        const path = extractStoragePath(workspace.image)
+        if (path) await supabaseAdmin.storage.from(STORAGE_BUCKET).remove([path])
+    }
+
+    // 새 이미지 업로드
+    const timestamp = Date.now()
+    const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
+    const filePath = `workspace/images/${timestamp}_${safeName}`
+    const bytes = await file.arrayBuffer()
+    const { error: uploadError } = await supabaseAdmin.storage
+        .from(STORAGE_BUCKET)
+        .upload(filePath, Buffer.from(bytes), { contentType: file.type, upsert: true })
+    if (uploadError) return { error: '이미지 업로드 중 오류가 발생했습니다.' }
+
+    await prisma.workspace.update({
+        where: { id: workspaceId },
+        data: { image: getProxyUrl(filePath) }
+    })
+
+    revalidatePath(`/workspaces/${workspaceId}`)
+    revalidatePath('/workspaces')
+    return { success: true }
+}
+
+// Remove workspace image (Leader/Admin only)
+export async function removeWorkspaceImage(workspaceId: string) {
+    const session = await auth()
+    if (!session?.user) return { error: '로그인이 필요합니다.' }
+
+    const membership = await prisma.workspaceMember.findUnique({
+        where: { workspaceId_userId: { workspaceId, userId: session.user.id } }
+    })
+    if (!membership?.isLeader && !session.user.isAdmin) {
+        return { error: '팀장만 사진을 변경할 수 있습니다.' }
+    }
+
+    const workspace = await prisma.workspace.findUnique({ where: { id: workspaceId } })
+    if (workspace?.image) {
+        const path = extractStoragePath(workspace.image)
+        if (path) await supabaseAdmin.storage.from(STORAGE_BUCKET).remove([path])
+    }
+
+    await prisma.workspace.update({
+        where: { id: workspaceId },
+        data: { image: null }
+    })
+
+    revalidatePath(`/workspaces/${workspaceId}`)
+    revalidatePath('/workspaces')
+    return { success: true }
+}
+
 // Delete workspace (Leader only)
 export async function deleteWorkspace(id: string) {
     const session = await auth()
@@ -208,6 +280,13 @@ export async function deleteWorkspace(id: string) {
 
     if (!membership?.isLeader && !session.user.isAdmin) {
         return { error: "팀장만 삭제할 수 있습니다." }
+    }
+
+    // 이미지 파일 삭제
+    const workspace = await prisma.workspace.findUnique({ where: { id } })
+    if (workspace?.image) {
+        const path = extractStoragePath(workspace.image)
+        if (path) await supabaseAdmin.storage.from(STORAGE_BUCKET).remove([path])
     }
 
     await prisma.workspace.delete({ where: { id } })

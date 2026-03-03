@@ -3,7 +3,7 @@
    Aesthetic: Clean iOS meets subtle warmth
    ────────────────────────────────────────── */
 
-@import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap');
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
 
 :root {
     /* Core palette */
@@ -53,8 +53,8 @@
     --radius-full: 9999px;
 
     /* Typography */
-    --font-display: 'Pretendard', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
-    --font-text: 'Pretendard', -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+    --font-display: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+    --font-text: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
     --font-mono: 'SF Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 

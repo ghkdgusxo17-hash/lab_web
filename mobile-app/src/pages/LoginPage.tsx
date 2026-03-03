@@ -94,7 +94,7 @@ export default function LoginPage() {
                 </p>
             </div>
 
-            <p className="version">v1.0.1</p>
+            <p className="version">v1.0.2</p>
         </div>
     )
 }

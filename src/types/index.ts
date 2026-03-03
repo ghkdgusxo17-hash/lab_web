@@ -107,6 +107,8 @@ export interface CalendarEvent {
     startTime: Date
     endTime: Date
     isAllDay: boolean
+    isImportant?: boolean
+    category?: string
     color?: string
     createdBy: User
     createdAt: Date

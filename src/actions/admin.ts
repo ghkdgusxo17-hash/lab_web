@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
 import { supabaseAdmin } from "@/lib/supabase"
-import { STORAGE_BUCKET } from "@/lib/storage-constants"
+import { STORAGE_BUCKET, extractStoragePath } from "@/lib/storage-constants"
 
 // Get all pending counts for admin dashboard
 export async function getAdminPendingCounts() {
@@ -28,8 +28,7 @@ export async function getAdminPendingCounts() {
 // Helper to extract path from URL
 function getPathFromUrl(url: string | null) {
     if (!url) return null
-    const parts = url.split(`/storage/v1/object/public/${STORAGE_BUCKET}/`)
-    return parts.length > 1 ? parts[1] : null
+    return extractStoragePath(url)
 }
 
 // Clean up orphaned files in storage

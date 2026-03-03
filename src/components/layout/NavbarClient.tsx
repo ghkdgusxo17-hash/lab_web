@@ -4,11 +4,13 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { Menu, X, FlaskConical, LogOut, User, ChevronDown, Settings, Shield, MessageCircle } from 'lucide-react'
+import { Menu, X, LogOut, ChevronDown, Settings, Shield, MessageCircle } from 'lucide-react'
 import { Session } from 'next-auth'
 import { signOutAction } from '@/actions/user'
 import { useTheme } from '@/components/ThemeProvider'
 import { MedalBadge } from '@/components/ui/MedalBadge'
+import { UserAvatar } from '@/components/ui/UserAvatar'
+import { ModeToggle } from './ModeToggle'
 
 interface NavbarClientProps {
     session: Session | null
@@ -59,7 +61,8 @@ export function NavbarClient({ session, unreadInquiryCount = 0, pendingCounts }:
     const [adminRequestsOpen, setAdminRequestsOpen] = useState(false)
     const [navMode, setNavMode] = useState<'intro' | 'work'>('intro')
     const user = session?.user
-    const { designTheme } = useTheme()
+    const { designTheme, resolvedTheme } = useTheme()
+    const isDark = resolvedTheme === 'dark'
     const isMember = user?.isApproved || user?.isAdmin
 
     // Load navMode from localStorage
@@ -198,18 +201,9 @@ export function NavbarClient({ session, unreadInquiryCount = 0, pendingCounts }:
                     <div className="hidden md:block">
                         {user ? (
                             <div className="flex items-center gap-2">
-                                {/* Mode Toggle Button */}
+                                {/* Mode Toggle */}
                                 {isMember && (
-                                    <button
-                                        onClick={toggleNavMode}
-                                        className={`px-4 py-2 text-sm font-bold t-rounded-lg transition-all ${navMode === 'work'
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
-                                            }`}
-                                        title={navMode === 'intro' ? '연구실 모드로 전환' : '홈페이지 모드로 전환'}
-                                    >
-                                        {navMode === 'work' ? '🔬 연구실' : '🏠 홈페이지'}
-                                    </button>
+                                    <ModeToggle isWork={navMode === 'work'} isDark={isDark} onChange={toggleNavMode} />
                                 )}
                                 {/* User dropdown */}
                                 <div className="relative">
@@ -217,13 +211,7 @@ export function NavbarClient({ session, unreadInquiryCount = 0, pendingCounts }:
                                         onClick={() => setUserMenuOpen(!userMenuOpen)}
                                         className="flex items-center gap-3 pl-4 pr-2 py-1.5 border-l border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
                                     >
-                                        {user.image ? (
-                                            <img src={user.image} alt={user.name || ''} className="w-9 h-9 rounded-full object-cover border border-slate-200 dark:border-slate-700" />
-                                        ) : (
-                                            <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700">
-                                                <User className="w-5 h-5 text-slate-500" />
-                                            </div>
-                                        )}
+                                        <UserAvatar src={user.image} name={user.name} size={36} className="border border-slate-200 dark:border-slate-700" />
                                         <div className="text-sm text-left">
                                             <p className="font-bold text-slate-900 dark:text-white leading-none mb-1">
                                                 {user.name}
@@ -350,20 +338,12 @@ export function NavbarClient({ session, unreadInquiryCount = 0, pendingCounts }:
                             </Link>
                         )}
 
-                        {/* Mode Toggle Button for mobile */}
+                        {/* Mode Toggle for mobile */}
                         {isMember && (
-                            <button
-                                onClick={() => {
-                                    toggleNavMode()
-                                    setMobileMenuOpen(false)
-                                }}
-                                className={`w-full py-3 text-base font-bold text-center rounded-xl transition-all ${navMode === 'work'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                                    }`}
-                            >
-                                {navMode === 'work' ? '🏠 홈페이지 모드로 전환' : '🔬 연구실 모드로 전환'}
-                            </button>
+                            <div className="flex items-center justify-between px-4 py-3">
+                                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">모드 전환</span>
+                                <ModeToggle isWork={navMode === 'work'} isDark={isDark} onChange={() => { toggleNavMode(); setMobileMenuOpen(false) }} />
+                            </div>
                         )}
 
 
@@ -371,13 +351,7 @@ export function NavbarClient({ session, unreadInquiryCount = 0, pendingCounts }:
                             {user ? (
                                 <div className="space-y-3">
                                     <div className="flex items-center gap-3 py-2">
-                                        {user.image ? (
-                                            <img src={user.image} alt={user.name || ''} className="w-10 h-10 rounded-full object-cover" />
-                                        ) : (
-                                            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
-                                                <User className="w-5 h-5 text-slate-500" />
-                                            </div>
-                                        )}
+                                        <UserAvatar src={user.image} name={user.name} size={40} />
                                         <div>
                                             <p className="font-bold text-slate-900 dark:text-white">
                                                 {user.name}

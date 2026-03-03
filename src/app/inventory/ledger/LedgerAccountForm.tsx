@@ -103,7 +103,7 @@ export function LedgerAccountForm({ existingSections = DEFAULT_SECTIONS }: Ledge
 
             <div>
                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                    잔액 (원) <span className="text-red-500">*</span>
+                    초기 잔액 (원) <span className="text-red-500">*</span>
                 </label>
                 <input
                     type="number"

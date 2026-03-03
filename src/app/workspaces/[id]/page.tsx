@@ -10,6 +10,7 @@ import { MemberManager } from '@/components/workspace/MemberManager'
 import { ResourceUpload } from '@/components/workspace/ResourceUpload'
 import { SectionManager } from '@/components/workspace/SectionManager'
 import { WorkspaceActions } from '@/components/workspace/WorkspaceActions'
+import { WorkspaceImageEditor } from '@/components/workspace/WorkspaceImageEditor'
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
     const { id } = await params
@@ -59,9 +60,12 @@ export default async function WorkspaceDetailPage({ params }: WorkspaceDetailPag
                     {/* Header */}
                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
                         <div className="flex items-start gap-4">
-                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                                <Users className="w-8 h-8 text-white" />
-                            </div>
+                            <WorkspaceImageEditor
+                                workspaceId={id}
+                                image={workspace.image ?? null}
+                                canEdit={workspace.isLeader || isAdmin}
+                                size="lg"
+                            />
                             <div>
                                 <div className="flex items-center gap-2 mb-1">
                                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white">

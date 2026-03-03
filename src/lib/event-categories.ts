@@ -2,6 +2,7 @@
 export const EVENT_CATEGORIES = {
     SEMINAR: { label: '세미나', color: '#3B82F6' },      // Blue
     MEETING: { label: '미팅', color: '#10B981' },        // Green
+    LAB_MEETING: { label: '랩미팅', color: '#6366F1' },  // Indigo
     DEADLINE: { label: '마감일', color: '#EF4444' },     // Red
     TRIP: { label: '출장', color: '#8B5CF6' },           // Purple
     VACATION: { label: '휴가', color: '#F59E0B' },       // Yellow

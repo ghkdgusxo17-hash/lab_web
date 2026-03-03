@@ -72,6 +72,18 @@ model User {
   medalPoints      Int            @default(0)  // 누적 훈장 포인트 (MVP=2, 우수=1)
   medalAwards      MedalAward[]   @relation("MedalRecipient")
   medalAwardsGiven MedalAward[]   @relation("MedalAwarder")
+
+  // Paper Management (논문 관리)
+  labPapersUploaded LabPaper[]       @relation("LabPaperUploader")
+  labPaperAuthored  LabPaperAuthor[] @relation("LabPaperAuthor")
+  paperRevisions    PaperRevision[]  @relation("PaperRevisionUploader")
+  readingPapers     ReadingPaper[]   @relation("ReadingPaperReader")
+
+  // Material Partitions (자료 파티션)
+  materialPartitions MaterialPartition[] @relation("PartitionCreator")
+
+  // Timetable (시간표)
+  timetable          Timetable?          @relation("TimetableOwner")
 }
 
 model Account {
@@ -181,7 +193,8 @@ model CalendarEvent {
   startTime   DateTime
   endTime     DateTime
   isAllDay    Boolean  @default(false)
-  category    String   @default("OTHER") // SEMINAR, MEETING, DEADLINE, TRIP, VACATION, OTHER
+  isImportant Boolean  @default(false)
+  category    String   @default("OTHER") // SEMINAR, MEETING, LAB_MEETING, DEADLINE, TRIP, VACATION, OTHER
   color       String?
   createdById String
   createdBy   User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
@@ -216,9 +229,27 @@ model Material {
   presenter     User?       @relation("MaterialPresenter", fields: [presenterId], references: [id], onDelete: SetNull)
   labMeetingId  String?
   labMeeting    LabMeeting? @relation(fields: [labMeetingId], references: [id], onDelete: SetNull)
+  partitionId   String?
+  partition     MaterialPartition? @relation(fields: [partitionId], references: [id], onDelete: SetNull)
   transcription MeetingTranscription?  // 연결된 트랜스크립션
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+}
+
+// ============ Material Partition (자료 파티션) ============
+
+model MaterialPartition {
+  id          String     @id @default(cuid())
+  name        String
+  description String?
+  emoji       String     @default("📁")
+  color       String     @default("#3B82F6")
+  category    String     // DATA or OTHER
+  creatorId   String
+  creator     User       @relation("PartitionCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  materials   Material[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 }
 
 // ============ Lab Meeting (랩미팅) ============
@@ -354,6 +385,7 @@ model Workspace {
   id          String              @id @default(cuid())
   name        String
   description String?
+  image       String?
   members     WorkspaceMember[]
   sections    WorkspaceSection[]
   resources   WorkspaceResource[]
@@ -563,7 +595,8 @@ model LedgerAccount {
   section       String   @default("기본") // 섹션 (예: 연구비, 인건비, 기자재)
   sectionOrder  Int      @default(0)  // 섹션 표시 순서 (낮을수록 위)
   name          String   // 항목명
-  balance       Int      @default(0)  // 현재 잔액 (원)
+  initialBalance Int     @default(0)  // 초기 잔액 (원)
+  balance       Int      @default(0)  // 현재 잔액 (원, 초기잔액 + 거래합계)
   description   String?  // 설명
   recordedById    String?
   recordedBy      User?    @relation("LedgerRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
@@ -586,6 +619,71 @@ model LedgerTransaction {
   note          String?       // 비고
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+}
+
+// ============ Paper Management (논문 관리) ============
+// status: WRITING, SUBMITTED, UNDER_REVIEW, REVISION, ACCEPTED, PUBLISHED
+
+model LabPaper {
+  id         String           @id @default(cuid())
+  title      String
+  abstract   String?
+  journal    String?
+  status     String           @default("WRITING") // WRITING, SUBMITTED, UNDER_REVIEW, REVISION, ACCEPTED, PUBLISHED
+  year       Int?
+  doi        String?
+  url        String?
+  filename   String?
+  size       Int?
+  mimeType   String?
+  uploaderId String
+  uploader   User             @relation("LabPaperUploader", fields: [uploaderId], references: [id], onDelete: Cascade)
+  authors    LabPaperAuthor[]
+  revisions  PaperRevision[]
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+}
+
+model LabPaperAuthor {
+  id      String   @id @default(cuid())
+  paperId String
+  paper   LabPaper @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User     @relation("LabPaperAuthor", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([paperId, userId])
+}
+
+model PaperRevision {
+  id         String   @id @default(cuid())
+  paperId    String
+  paper      LabPaper @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  version    Int
+  note       String?
+  url        String
+  filename   String
+  size       Int
+  mimeType   String?
+  uploaderId String
+  uploader   User     @relation("PaperRevisionUploader", fields: [uploaderId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+}
+
+model ReadingPaper {
+  id          String   @id @default(cuid())
+  title       String
+  authors     String?  // 외부 논문 저자 (텍스트)
+  year        Int?
+  abstract    String?
+  externalUrl String?  // DOI/arXiv 링크
+  pptUrl      String?
+  pptFilename String?
+  pptSize     Int?
+  pptMimeType String?
+  readerId    String
+  reader      User     @relation("ReadingPaperReader", fields: [readerId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 // ============ Post Interactions (게시글 상호작용) ============
@@ -637,4 +735,32 @@ model PollVote {
   createdAt DateTime   @default(now())
 
   @@unique([optionId, userId])
+}
+
+// 시간표
+model Timetable {
+  id        String           @id @default(cuid())
+  userId    String           @unique
+  user      User             @relation("TimetableOwner", fields: [userId], references: [id], onDelete: Cascade)
+  semester  String           // "2026-1" 형식
+  pdfUrl    String?          // 업로드한 원본 PDF URL
+  entries   TimetableEntry[]
+  updatedAt DateTime         @updatedAt
+  createdAt DateTime         @default(now())
+}
+
+model TimetableEntry {
+  id          String    @id @default(cuid())
+  timetableId String
+  timetable   Timetable @relation(fields: [timetableId], references: [id], onDelete: Cascade)
+  dayOfWeek   Int       // 0=월, 1=화, 2=수, 3=목, 4=금, 5=토
+  startTime   String    // "09:00" 형식
+  endTime     String    // "10:15" 형식
+  courseName  String    // 과목명
+  professor   String?   // 교수명
+  room        String?   // 강의실
+  color       String?   // 표시 색상
+  createdAt   DateTime  @default(now())
+
+  @@index([timetableId])
 }

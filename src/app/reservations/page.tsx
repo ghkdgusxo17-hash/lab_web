@@ -5,6 +5,7 @@ import { getTodayReservations } from '@/actions/reservation'
 import { auth } from '@/auth'
 import { Navbar } from '@/components/layout'
 import { Server, Calendar, Plus, Clock } from 'lucide-react'
+import { UserAvatar } from '@/components/ui/UserAvatar'
 
 export const dynamic = 'force-dynamic'
 
@@ -137,11 +138,7 @@ export default async function ReservationsPage() {
                                                 </div>
 
                                                 <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                                                    {reservation.user.image ? (
-                                                        <img src={reservation.user.image} alt="" className="w-4 h-4 rounded-full" />
-                                                    ) : (
-                                                        <div className="w-4 h-4 rounded-full bg-slate-200" />
-                                                    )}
+                                                    <UserAvatar src={reservation.user.image} name={reservation.user.name} size={16} />
                                                     <span className="font-medium">{reservation.user.name}</span>
                                                     {reservation.purpose && (
                                                         <>

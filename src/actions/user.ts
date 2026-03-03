@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { auth, signIn, signOut } from "@/auth"
 import { supabaseAdmin } from "@/lib/supabase"
-import { STORAGE_BUCKET } from "@/lib/storage-constants"
+import { STORAGE_BUCKET, extractStoragePath } from "@/lib/storage-constants"
 import bcrypt from "bcryptjs"
 import { revalidatePath } from "next/cache"
 
@@ -320,21 +320,11 @@ export async function deleteUser(userId: string) {
     })
 
     if (user?.image) {
-        let filePath: string | null = null
-
-        // Handle proxy URL format: /api/storage/uploads/...
-        if (user.image.includes('/api/storage/uploads/')) {
-            filePath = user.image.split('/api/storage/uploads/')[1]
-        }
-        // Handle legacy direct Supabase URL format
-        else if (user.image.includes(`/storage/v1/object/public/${STORAGE_BUCKET}/`)) {
-            filePath = user.image.split(`/storage/v1/object/public/${STORAGE_BUCKET}/`)[1]
-        }
-
-        if (filePath) {
+        const storagePath = extractStoragePath(user.image)
+        if (storagePath) {
             await supabaseAdmin.storage
                 .from(STORAGE_BUCKET)
-                .remove([filePath])
+                .remove([storagePath])
         }
     }
 

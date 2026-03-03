@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { supabaseAdmin } from '@/lib/supabase'
-import { STORAGE_BUCKET } from '@/lib/storage-constants'
+import { STORAGE_BUCKET, getProxyUrl, extractStoragePath } from '@/lib/storage-constants'
 
 // Get all lab meetings (ordered by date desc)
 export async function getLabMeetings() {
@@ -200,11 +200,11 @@ export async function deleteLabMeeting(id: string) {
         })
 
         for (const material of materials) {
-            const urlParts = material.url.split('/storage/v1/object/public/uploads/')
-            if (urlParts.length > 1) {
+            const storagePath = extractStoragePath(material.url)
+            if (storagePath) {
                 await supabaseAdmin.storage
                     .from(STORAGE_BUCKET)
-                    .remove([urlParts[1]])
+                    .remove([storagePath])
             }
         }
 
@@ -265,11 +265,6 @@ export async function uploadLabMeetingMaterial(labMeetingId: string, formData: F
             return { error: "파일 업로드 중 오류가 발생했습니다." }
         }
 
-        // Get public URL
-        const { data: urlData } = supabaseAdmin.storage
-            .from(STORAGE_BUCKET)
-            .getPublicUrl(filePath)
-
         // Create database record
         await prisma.material.create({
             data: {
@@ -277,7 +272,7 @@ export async function uploadLabMeetingMaterial(labMeetingId: string, formData: F
                 description: description || null,
                 category,
                 filename: file.name,
-                url: urlData.publicUrl,
+                url: getProxyUrl(filePath),
                 size: file.size,
                 mimeType: file.type,
                 uploaderId: session.user.id,
@@ -316,11 +311,11 @@ export async function deleteLabMeetingMaterial(materialId: string) {
 
     try {
         // Delete from Supabase Storage
-        const urlParts = material.url.split('/storage/v1/object/public/uploads/')
-        if (urlParts.length > 1) {
+        const storagePath = extractStoragePath(material.url)
+        if (storagePath) {
             await supabaseAdmin.storage
                 .from(STORAGE_BUCKET)
-                .remove([urlParts[1]])
+                .remove([storagePath])
         }
 
         // Delete database record
@@ -336,6 +331,186 @@ export async function deleteLabMeetingMaterial(materialId: string) {
         console.error('Delete error:', error)
         return { error: "삭제 중 오류가 발생했습니다." }
     }
+}
+
+// Get year stats for folder navigation
+export async function getLabMeetingYearStats() {
+    const meetings = await prisma.labMeeting.findMany({
+        include: {
+            presenters: {
+                include: {
+                    user: { select: { id: true, name: true } }
+                }
+            },
+            _count: { select: { materials: true } }
+        },
+        orderBy: { date: 'desc' }
+    })
+
+    // Group by year
+    const yearMap = new Map<number, {
+        meetingCount: number
+        materialsCount: number
+        presenterIds: Set<string>
+        monthsWithMeetings: Set<number>
+    }>()
+
+    for (const m of meetings) {
+        const year = new Date(m.date).getFullYear()
+        const month = new Date(m.date).getMonth() + 1
+        if (!yearMap.has(year)) {
+            yearMap.set(year, {
+                meetingCount: 0,
+                materialsCount: 0,
+                presenterIds: new Set(),
+                monthsWithMeetings: new Set()
+            })
+        }
+        const stats = yearMap.get(year)!
+        stats.meetingCount++
+        stats.materialsCount += m._count.materials
+        stats.monthsWithMeetings.add(month)
+        for (const p of m.presenters) {
+            stats.presenterIds.add(p.userId)
+        }
+    }
+
+    // Get MVP per year using MedalAward
+    const allAwards = await prisma.medalAward.findMany({
+        include: {
+            recipient: { select: { id: true, name: true } },
+            labMeeting: { select: { date: true } }
+        }
+    })
+
+    const yearMvpMap = new Map<number, Map<string, { name: string; count: number }>>()
+    for (const award of allAwards) {
+        const year = new Date(award.labMeeting.date).getFullYear()
+        if (!yearMvpMap.has(year)) yearMvpMap.set(year, new Map())
+        const userMap = yearMvpMap.get(year)!
+        const existing = userMap.get(award.recipientId)
+        if (existing) {
+            existing.count++
+        } else {
+            userMap.set(award.recipientId, { name: award.recipient.name || '알 수 없음', count: 1 })
+        }
+    }
+
+    const results = Array.from(yearMap.entries()).map(([year, stats]) => {
+        const mvpMap = yearMvpMap.get(year)
+        let mvp: { name: string; count: number } | null = null
+        if (mvpMap && mvpMap.size > 0) {
+            const topEntry = Array.from(mvpMap.values()).sort((a, b) => b.count - a.count)[0]
+            mvp = topEntry
+        }
+        return {
+            year,
+            meetingCount: stats.meetingCount,
+            materialsCount: stats.materialsCount,
+            presenterCount: stats.presenterIds.size,
+            monthsWithMeetings: Array.from(stats.monthsWithMeetings).sort((a, b) => a - b),
+            mvp
+        }
+    })
+
+    return results.sort((a, b) => b.year - a.year)
+}
+
+// Get meetings for a specific year/month
+export async function getLabMeetingsByMonth(year: number, month: number) {
+    const startDate = new Date(year, month - 1, 1)
+    const endDate = new Date(year, month, 1)
+
+    const meetings = await prisma.labMeeting.findMany({
+        where: {
+            date: { gte: startDate, lt: endDate }
+        },
+        include: {
+            presenters: {
+                include: {
+                    user: { select: { id: true, name: true, image: true, medalPoints: true } }
+                }
+            },
+            _count: { select: { materials: true } }
+        },
+        orderBy: { date: 'desc' }
+    })
+
+    return meetings.map(meeting => ({
+        ...meeting,
+        presenters: meeting.presenters.map(p => p.user),
+        materialsCount: meeting._count.materials
+    }))
+}
+
+// Get month stats for a specific year
+export async function getLabMeetingMonthStats(year: number) {
+    const startDate = new Date(year, 0, 1)
+    const endDate = new Date(year + 1, 0, 1)
+
+    const meetings = await prisma.labMeeting.findMany({
+        where: {
+            date: { gte: startDate, lt: endDate }
+        },
+        include: {
+            presenters: {
+                include: {
+                    user: { select: { id: true, name: true, image: true } }
+                }
+            },
+            _count: { select: { materials: true } }
+        },
+        orderBy: { date: 'desc' }
+    })
+
+    // Group by month
+    const monthStats = Array.from({ length: 12 }, (_, i) => ({
+        month: i + 1,
+        meetingCount: 0,
+        materialsCount: 0,
+        presenters: [] as { id: string; name: string | null; image: string | null }[]
+    }))
+
+    for (const m of meetings) {
+        const month = new Date(m.date).getMonth()
+        monthStats[month].meetingCount++
+        monthStats[month].materialsCount += m._count.materials
+        for (const p of m.presenters) {
+            if (!monthStats[month].presenters.find(existing => existing.id === p.user.id)) {
+                monthStats[month].presenters.push(p.user)
+            }
+        }
+    }
+
+    return monthStats
+}
+
+// Search lab meetings
+export async function searchLabMeetings(query: string) {
+    const meetings = await prisma.labMeeting.findMany({
+        where: {
+            OR: [
+                { title: { contains: query, mode: 'insensitive' } },
+                { description: { contains: query, mode: 'insensitive' } },
+                { presenters: { some: { user: { name: { contains: query, mode: 'insensitive' } } } } }
+            ]
+        },
+        include: {
+            presenters: {
+                include: {
+                    user: { select: { id: true, name: true, image: true, medalPoints: true } }
+                }
+            },
+            _count: { select: { materials: true } }
+        },
+        orderBy: { date: 'desc' }
+    })
+
+    return meetings.map(meeting => ({
+        ...meeting,
+        presenters: meeting.presenters.map(p => p.user),
+        materialsCount: meeting._count.materials
+    }))
 }
 
 // Get approved members for presenter selection

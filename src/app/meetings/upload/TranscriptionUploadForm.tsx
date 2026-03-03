@@ -80,6 +80,10 @@ export function TranscriptionUploadForm({ materials, members, initialMaterialId 
         }
     }
 
+    const [uploadProgress, setUploadProgress] = useState<string | null>(null)
+
+    const CHUNK_SIZE = 2 * 1024 * 1024 // 2MB per chunk
+
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
 
@@ -101,22 +105,66 @@ export function TranscriptionUploadForm({ materials, members, initialMaterialId 
                 await updateMaterialPresenter(selectedMaterialId, selectedPresenterId || null)
             }
 
-            // Create transcription
-            const formData = new FormData()
-            formData.set('materialId', selectedMaterialId)
-            formData.set('audioFile', audioFile)
+            // Step 1: Upload audio file in chunks (avoids Cloudflare QUIC timeout)
+            const totalChunks = Math.ceil(audioFile.size / CHUNK_SIZE)
+            const uploadId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+            let filePath = ''
+            let originalFilename = audioFile.name
 
-            const result = await createTranscription(formData)
+            for (let i = 0; i < totalChunks; i++) {
+                setUploadProgress(`업로드 중... ${Math.round(((i + 1) / totalChunks) * 100)}%`)
+
+                const start = i * CHUNK_SIZE
+                const end = Math.min(start + CHUNK_SIZE, audioFile.size)
+                const chunkBlob = audioFile.slice(start, end)
+
+                const formData = new FormData()
+                formData.set('chunk', chunkBlob)
+                formData.set('uploadId', uploadId)
+                formData.set('chunkIndex', String(i))
+                formData.set('totalChunks', String(totalChunks))
+                formData.set('filename', audioFile.name)
+
+                const res = await fetch('/api/upload/audio', {
+                    method: 'POST',
+                    body: formData,
+                })
+
+                if (!res.ok) {
+                    const err = await res.json()
+                    throw new Error(err.error || `청크 ${i + 1} 업로드 실패`)
+                }
+
+                const result = await res.json()
+                if (result.done) {
+                    filePath = result.filePath
+                    originalFilename = result.originalFilename
+                }
+            }
+
+            if (!filePath) {
+                throw new Error('파일 업로드 완료 응답을 받지 못했습니다.')
+            }
+
+            // Step 2: Create transcription record + start job (lightweight, no file transfer)
+            setUploadProgress('트랜스크립션 시작 중...')
+            const result = await createTranscription({
+                materialId: selectedMaterialId,
+                filePath,
+                originalFilename,
+            })
 
             if (result.error) {
                 alert(result.error)
                 setLoading(false)
+                setUploadProgress(null)
             } else {
                 router.push('/meetings')
             }
         } catch (error) {
-            alert('오류가 발생했습니다.')
+            alert(error instanceof Error ? error.message : '오류가 발생했습니다.')
             setLoading(false)
+            setUploadProgress(null)
         }
     }
 
@@ -288,7 +336,7 @@ export function TranscriptionUploadForm({ materials, members, initialMaterialId 
                 {loading ? (
                     <>
                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        처리 시작 중...
+                        {uploadProgress || '처리 시작 중...'}
                     </>
                 ) : (
                     <>

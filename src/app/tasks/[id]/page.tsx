@@ -6,6 +6,7 @@ import { auth } from '@/auth'
 import { Navbar } from '@/components/layout'
 import { ArrowLeft, Paperclip, Download } from 'lucide-react'
 import { MedalBadge } from '@/components/ui/MedalBadge'
+import { UserAvatar } from '@/components/ui/UserAvatar'
 import { TaskStatusChanger } from './TaskStatusChanger'
 import { TaskCommentSection } from './TaskCommentSection'
 import { TaskAttachmentUpload } from './TaskAttachmentUpload'
@@ -119,11 +120,7 @@ export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
 
                         <div className="flex items-center gap-3 text-sm text-slate-500 mb-6">
                             <div className="flex items-center gap-2">
-                                {task.author.image ? (
-                                    <img src={task.author.image} alt="" className="w-6 h-6 rounded-full" />
-                                ) : (
-                                    <div className="w-6 h-6 rounded-full bg-slate-200" />
-                                )}
+                                <UserAvatar src={task.author.image} name={task.author.name} size={24} />
                                 <span>
                                     {task.author.name}
                                     {' '}<MedalBadge medalPoints={(task.author as any).medalPoints || 0} size="sm" />

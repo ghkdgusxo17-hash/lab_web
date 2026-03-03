@@ -3,7 +3,6 @@
 import Link from 'next/link'
 
 const MATERIAL_TYPES = [
-    { key: '', label: '전체' },
     { key: 'PAPER', label: '논문' },
     { key: 'PPT', label: 'PPT' },
     { key: 'DATA', label: '데이터' },

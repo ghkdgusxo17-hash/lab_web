@@ -5,6 +5,13 @@ import { X, Loader2 } from 'lucide-react'
 import { createEvent, updateEvent, deleteEvent } from '@/actions/event'
 import { EVENT_CATEGORIES } from '@/lib/event-categories'
 
+function formatDateHelper(date: Date) {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+}
+
 interface EventFormModalProps {
     isOpen: boolean
     onClose: () => void
@@ -17,6 +24,7 @@ interface EventFormModalProps {
         startTime: Date
         endTime: Date
         isAllDay: boolean
+        isImportant?: boolean
         createdById: string
     } | null
     currentUserId?: string
@@ -34,6 +42,9 @@ export function EventFormModal({
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
     const [isAllDay, setIsAllDay] = useState(event?.isAllDay || false)
+    const [isImportant, setIsImportant] = useState(event?.isImportant || false)
+    const [startDateValue, setStartDateValue] = useState('')
+    const [endDateValue, setEndDateValue] = useState('')
 
     const isEditing = !!event
     const canEdit = isEditing && (event.createdById === currentUserId || isAdmin)
@@ -44,18 +55,14 @@ export function EventFormModal({
         if (isOpen) {
             setError('')
             setIsAllDay(event?.isAllDay || false)
+            setIsImportant(event?.isImportant || false)
+            const defDate = selectedDate ? formatDateHelper(selectedDate) : formatDateHelper(new Date())
+            setStartDateValue(event ? formatDateHelper(new Date(event.startTime)) : defDate)
+            setEndDateValue(event ? formatDateHelper(new Date(event.endTime)) : defDate)
         }
-    }, [isOpen, event])
+    }, [isOpen, event, selectedDate])
 
     if (!isOpen) return null
-
-    const formatDate = (date: Date) => {
-        // Use local date format to avoid timezone issues
-        const year = date.getFullYear()
-        const month = String(date.getMonth() + 1).padStart(2, '0')
-        const day = String(date.getDate()).padStart(2, '0')
-        return `${year}-${month}-${day}`
-    }
 
     const formatTime = (date: Date) => {
         const hours = String(date.getHours()).padStart(2, '0')
@@ -70,6 +77,7 @@ export function EventFormModal({
 
         const formData = new FormData(e.currentTarget)
         formData.set('isAllDay', isAllDay.toString())
+        formData.set('isImportant', isImportant.toString())
 
         const result = isEditing
             ? await updateEvent(event.id, formData)
@@ -100,8 +108,6 @@ export function EventFormModal({
         onClose()
         setLoading(false)
     }
-
-    const defaultDate = selectedDate ? formatDate(selectedDate) : formatDate(new Date())
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -166,16 +172,46 @@ export function EventFormModal({
                         </select>
                     </div>
 
-                    {/* All Day Toggle */}
-                    <label className="flex items-center gap-3 cursor-pointer">
-                        <input
-                            type="checkbox"
-                            checked={isAllDay}
-                            onChange={(e) => setIsAllDay(e.target.checked)}
-                            className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">하루 종일</span>
-                    </label>
+                    {/* All Day & Important Toggles */}
+                    <div className="flex items-center gap-6">
+                        <label className="flex items-center gap-3 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={isAllDay}
+                                onChange={(e) => setIsAllDay(e.target.checked)}
+                                className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">하루 종일</span>
+                        </label>
+
+                        {/* Important Toggle (Style C) */}
+                        <button
+                            type="button"
+                            onClick={() => setIsImportant(!isImportant)}
+                            className="flex items-center gap-2 group"
+                        >
+                            <div
+                                className={`w-[52px] h-7 rounded-full shadow-inner relative transition-colors duration-300 ${
+                                    isImportant
+                                        ? 'bg-amber-500 shadow-amber-600'
+                                        : 'bg-slate-300 dark:bg-slate-700'
+                                }`}
+                            >
+                                <div
+                                    className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center transition-transform duration-300 ${
+                                        isImportant ? 'translate-x-[24px]' : 'translate-x-0'
+                                    }`}
+                                >
+                                    <span className="text-xs leading-none">{isImportant ? '★' : '☆'}</span>
+                                </div>
+                            </div>
+                            <span className={`text-xs font-bold transition-colors ${
+                                isImportant ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400'
+                            }`}>
+                                중요
+                            </span>
+                        </button>
+                    </div>
 
                     {/* Date & Time */}
                     <div className="grid grid-cols-2 gap-4">
@@ -188,7 +224,14 @@ export function EventFormModal({
                                 name="startDate"
                                 type="date"
                                 required
-                                defaultValue={event ? formatDate(new Date(event.startTime)) : defaultDate}
+                                value={startDateValue}
+                                onChange={(e) => {
+                                    const newStart = e.target.value
+                                    setStartDateValue(newStart)
+                                    if (newStart > endDateValue) {
+                                        setEndDateValue(newStart)
+                                    }
+                                }}
                                 className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                         </div>
@@ -217,7 +260,9 @@ export function EventFormModal({
                                 id="endDate"
                                 name="endDate"
                                 type="date"
-                                defaultValue={event ? formatDate(new Date(event.endTime)) : defaultDate}
+                                min={startDateValue}
+                                value={endDateValue}
+                                onChange={(e) => setEndDateValue(e.target.value)}
                                 className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                         </div>

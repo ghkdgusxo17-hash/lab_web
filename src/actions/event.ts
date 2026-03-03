@@ -94,6 +94,7 @@ export async function createEvent(formData: FormData) {
     const description = formData.get("description") as string || null
     const category = formData.get("category") as string || "OTHER"
     const isAllDay = formData.get("isAllDay") === "true"
+    const isImportant = formData.get("isImportant") === "true"
     const startDate = formData.get("startDate") as string
     const startTime = formData.get("startTime") as string
     const endDate = formData.get("endDate") as string
@@ -117,6 +118,13 @@ export async function createEvent(formData: FormData) {
             : new Date(`${startDate}T${endTime || '10:00'}`)
     }
 
+    // 종료일이 시작일보다 앞서면 시작일로 보정
+    if (endDateTime < startDateTime) {
+        endDateTime = isAllDay
+            ? new Date(`${startDate}T23:59:59`)
+            : new Date(startDateTime.getTime() + 60 * 60 * 1000) // +1시간
+    }
+
     // Get color from category
     const color = EVENT_CATEGORIES[category as keyof typeof EVENT_CATEGORIES]?.color || EVENT_CATEGORIES.OTHER.color
 
@@ -128,6 +136,7 @@ export async function createEvent(formData: FormData) {
             startTime: startDateTime,
             endTime: endDateTime,
             isAllDay,
+            isImportant,
             color,
             createdById: session.user.id,
         }
@@ -161,6 +170,7 @@ export async function updateEvent(id: string, formData: FormData) {
     const description = formData.get("description") as string || null
     const category = formData.get("category") as string || "OTHER"
     const isAllDay = formData.get("isAllDay") === "true"
+    const isImportant = formData.get("isImportant") === "true"
     const startDate = formData.get("startDate") as string
     const startTime = formData.get("startTime") as string
     const endDate = formData.get("endDate") as string
@@ -184,6 +194,13 @@ export async function updateEvent(id: string, formData: FormData) {
             : new Date(`${startDate}T${endTime || '10:00'}`)
     }
 
+    // 종료일이 시작일보다 앞서면 시작일로 보정
+    if (endDateTime < startDateTime) {
+        endDateTime = isAllDay
+            ? new Date(`${startDate}T23:59:59`)
+            : new Date(startDateTime.getTime() + 60 * 60 * 1000)
+    }
+
     const color = EVENT_CATEGORIES[category as keyof typeof EVENT_CATEGORIES]?.color || EVENT_CATEGORIES.OTHER.color
 
     await prisma.calendarEvent.update({
@@ -195,6 +212,7 @@ export async function updateEvent(id: string, formData: FormData) {
             startTime: startDateTime,
             endTime: endDateTime,
             isAllDay,
+            isImportant,
             color,
         }
     })

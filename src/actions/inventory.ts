@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { supabaseAdmin } from '@/lib/supabase'
-import { STORAGE_BUCKET } from '@/lib/storage-constants'
+import { STORAGE_BUCKET, getProxyUrl, extractStoragePath } from '@/lib/storage-constants'
 
 // ============ Inventory Items ============
 
@@ -96,10 +96,7 @@ export async function createInventoryItem(formData: FormData) {
                 })
 
             if (!uploadError) {
-                const { data: urlData } = supabaseAdmin.storage
-                    .from(STORAGE_BUCKET)
-                    .getPublicUrl(filePath)
-                msdsUrl = urlData.publicUrl
+                msdsUrl = getProxyUrl(filePath)
             }
         } catch (e) {
             console.error('MSDS upload error:', e)
@@ -185,12 +182,11 @@ export async function deleteInventoryItem(id: string) {
     })
 
     if (item?.msdsUrl) {
-        const parts = item.msdsUrl.split(`/storage/v1/object/public/${STORAGE_BUCKET}/`)
-        if (parts.length > 1) {
-            const filePath = parts[1]
+        const storagePath = extractStoragePath(item.msdsUrl)
+        if (storagePath) {
             await supabaseAdmin.storage
                 .from(STORAGE_BUCKET)
-                .remove([filePath])
+                .remove([storagePath])
         }
     }
 
@@ -399,10 +395,7 @@ export async function createPurchaseRequest(formData: FormData) {
                 })
 
             if (!uploadError) {
-                const { data: urlData } = supabaseAdmin.storage
-                    .from(STORAGE_BUCKET)
-                    .getPublicUrl(filePath)
-                quotationUrl = urlData.publicUrl
+                quotationUrl = getProxyUrl(filePath)
             }
         } catch (e) {
             console.error('Quotation upload error:', e)
@@ -526,10 +519,7 @@ export async function markAsPurchased(id: string, actualCost: number, receiptFil
                 })
 
             if (!uploadError) {
-                const { data: urlData } = supabaseAdmin.storage
-                    .from(STORAGE_BUCKET)
-                    .getPublicUrl(filePath)
-                receiptUrl = urlData.publicUrl
+                receiptUrl = getProxyUrl(filePath)
             }
         } catch (e) {
             console.error('Receipt upload error:', e)
@@ -590,13 +580,13 @@ export async function deletePurchaseRequest(id: string) {
     const filesToDelete: string[] = []
 
     if (requestWithFiles?.quotationUrl) {
-        const parts = requestWithFiles.quotationUrl.split(`/storage/v1/object/public/${STORAGE_BUCKET}/`)
-        if (parts.length > 1) filesToDelete.push(parts[1])
+        const storagePath = extractStoragePath(requestWithFiles.quotationUrl)
+        if (storagePath) filesToDelete.push(storagePath)
     }
 
     if (requestWithFiles?.receiptUrl) {
-        const parts = requestWithFiles.receiptUrl.split(`/storage/v1/object/public/${STORAGE_BUCKET}/`)
-        if (parts.length > 1) filesToDelete.push(parts[1])
+        const storagePath = extractStoragePath(requestWithFiles.receiptUrl)
+        if (storagePath) filesToDelete.push(storagePath)
     }
 
     if (filesToDelete.length > 0) {
@@ -711,6 +701,7 @@ export async function createLedgerAccount(formData: FormData) {
         data: {
             section,
             name,
+            initialBalance: balance,
             balance,
             description,
             recordedById: session.user.id,
@@ -732,7 +723,7 @@ export async function updateLedgerAccount(id: string, formData: FormData) {
 
     const section = formData.get('section') as string || '기본'
     const name = formData.get('name') as string
-    const balance = parseInt(formData.get('balance') as string) || 0
+    const newInitialBalance = parseInt(formData.get('balance') as string) || 0
     const description = formData.get('description') as string || null
 
     if (!name) {
@@ -744,11 +735,15 @@ export async function updateLedgerAccount(id: string, formData: FormData) {
         data: {
             section,
             name,
-            balance,
+            initialBalance: newInitialBalance,
             description
         }
     })
 
+    // 초기 잔액 변경 시 전체 잔액 재계산
+    await recalculateLedgerBalances(id)
+
+    revalidatePath(`/inventory/ledger/${id}`)
     revalidatePath('/inventory/ledger')
     return { success: true }
 }
@@ -808,16 +803,7 @@ export async function addLedgerTransaction(accountId: string, formData: FormData
         return { error: "지출 또는 입금 금액을 입력해주세요." }
     }
 
-    // Get previous balance
-    const lastTransaction = await prisma.ledgerTransaction.findFirst({
-        where: { accountId },
-        orderBy: { date: 'desc' }
-    })
-
-    const previousBalance = lastTransaction?.balance || 0
-    const newBalance = previousBalance + income - expense
-
-    // Create transaction
+    // Create transaction (balance will be recalculated)
     await prisma.ledgerTransaction.create({
         data: {
             accountId,
@@ -825,16 +811,13 @@ export async function addLedgerTransaction(accountId: string, formData: FormData
             description,
             expense,
             income,
-            balance: newBalance,
+            balance: 0,
             note
         }
     })
 
-    // Update account balance
-    await prisma.ledgerAccount.update({
-        where: { id: accountId },
-        data: { balance: newBalance }
-    })
+    // Recalculate all balances in chronological order
+    await recalculateLedgerBalances(accountId)
 
     revalidatePath(`/inventory/ledger/${accountId}`)
     revalidatePath('/inventory/ledger')
@@ -917,14 +900,17 @@ export async function deleteLedgerTransaction(transactionId: string) {
     return { success: true }
 }
 
-// Recalculate all balances for an account (after update/delete)
+// Recalculate all balances for an account (after add/update/delete)
 async function recalculateLedgerBalances(accountId: string) {
+    const account = await prisma.ledgerAccount.findUnique({ where: { id: accountId } })
+    if (!account) return
+
     const transactions = await prisma.ledgerTransaction.findMany({
         where: { accountId },
-        orderBy: { date: 'asc' }
+        orderBy: [{ date: 'asc' }, { createdAt: 'asc' }]
     })
 
-    let runningBalance = 0
+    let runningBalance = account.initialBalance
 
     for (const tx of transactions) {
         runningBalance = runningBalance + tx.income - tx.expense

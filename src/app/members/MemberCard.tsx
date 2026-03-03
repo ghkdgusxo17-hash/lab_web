@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { Mail, Edit } from 'lucide-react'
 import { MedalBadge } from '@/components/ui/MedalBadge'
+import { UserAvatar } from '@/components/ui/UserAvatar'
 
 const ROLE_LABELS: Record<string, string> = {
     PROFESSOR: '교수',
@@ -40,17 +41,12 @@ export function MemberCard({ member, isAdmin }: MemberCardProps) {
             )}
 
             <div className="flex flex-col items-center text-center">
-                {member.image ? (
-                    <img
-                        src={member.image}
-                        alt={member.name || ''}
-                        className="w-24 h-24 rounded-full object-cover mb-6 group-hover:scale-110 transition-transform duration-300"
-                    />
-                ) : (
-                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 flex items-center justify-center text-3xl font-bold text-blue-600 dark:text-blue-400 mb-6 group-hover:scale-110 transition-transform duration-300">
-                        {member.name?.slice(0, 1) || '?'}
-                    </div>
-                )}
+                <UserAvatar
+                    src={member.image}
+                    name={member.name}
+                    size={96}
+                    className="mb-6 group-hover:scale-110 transition-transform duration-300"
+                />
 
                 <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">
                     {member.name || '이름 없음'}

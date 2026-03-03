@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { FileText, Download, Trash2, User, UserCheck, FolderOpen, Mic, CheckCircle, Loader2, AlertCircle } from 'lucide-react'
 import { MedalBadge } from '@/components/ui/MedalBadge'
+import { ChunkedDownloadButton } from '@/components/ui/ChunkedDownloadButton'
 import { deleteLabMeetingMaterial } from '@/actions/lab-meeting'
 import { updateMaterialPresenter } from '@/actions/meeting-transcription'
 
@@ -239,16 +240,13 @@ export function MaterialList({ materials, currentUserId, isAdmin }: Props) {
                                 )}
                             </div>
                             <div className="flex items-center gap-1">
-                                <a
-                                    href={material.url}
-                                    download={material.filename}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                <ChunkedDownloadButton
+                                    url={material.url}
+                                    filename={material.filename}
                                     className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
-                                    title="다운로드"
                                 >
                                     <Download className="w-5 h-5" />
-                                </a>
+                                </ChunkedDownloadButton>
                                 {canDelete && (
                                     <button
                                         onClick={() => handleDelete(material.id)}

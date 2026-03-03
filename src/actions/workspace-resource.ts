@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { supabaseAdmin } from '@/lib/supabase'
-import { STORAGE_BUCKET } from '@/lib/storage-constants'
+import { STORAGE_BUCKET, getProxyUrl, extractStoragePath } from '@/lib/storage-constants'
 
 // Add file resource
 export async function addFileResource(workspaceId: string, formData: FormData) {
@@ -53,10 +53,6 @@ export async function addFileResource(workspaceId: string, formData: FormData) {
             return { error: "파일 업로드 중 오류가 발생했습니다." }
         }
 
-        const { data: urlData } = supabaseAdmin.storage
-            .from(STORAGE_BUCKET)
-            .getPublicUrl(filePath)
-
         await prisma.workspaceResource.create({
             data: {
                 workspaceId,
@@ -65,7 +61,7 @@ export async function addFileResource(workspaceId: string, formData: FormData) {
                 description: description || null,
                 type: 'FILE',
                 filename: file.name,
-                url: urlData.publicUrl,
+                url: getProxyUrl(filePath),
                 size: file.size,
                 mimeType: file.type,
                 uploaderId: session.user.id
@@ -160,12 +156,11 @@ export async function deleteWorkspaceResource(id: string) {
     try {
         // Delete file from Supabase Storage if it's a FILE type
         if (resource.type === 'FILE' && resource.url) {
-            const urlParts = resource.url.split('/storage/v1/object/public/uploads/')
-            if (urlParts.length > 1) {
-                const filePath = urlParts[1]
+            const storagePath = extractStoragePath(resource.url)
+            if (storagePath) {
                 await supabaseAdmin.storage
                     .from(STORAGE_BUCKET)
-                    .remove([filePath])
+                    .remove([storagePath])
             }
         }
 

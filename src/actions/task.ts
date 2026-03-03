@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { supabaseAdmin } from '@/lib/supabase'
-import { STORAGE_BUCKET } from '@/lib/storage-constants'
+import { STORAGE_BUCKET, getProxyUrl, extractStoragePath } from '@/lib/storage-constants'
 
 // Get tasks (with privacy: only author's tasks or all for admin)
 export async function getTasks(filters?: { status?: string; category?: string; projectId?: string; userId?: string }) {
@@ -241,14 +241,10 @@ export async function uploadTaskAttachment(taskId: string, formData: FormData) {
             return { error: "파일 업로드 중 오류가 발생했습니다." }
         }
 
-        const { data: urlData } = supabaseAdmin.storage
-            .from(STORAGE_BUCKET)
-            .getPublicUrl(filePath)
-
         await prisma.taskAttachment.create({
             data: {
                 filename: file.name,
-                url: urlData.publicUrl,
+                url: getProxyUrl(filePath),
                 size: file.size,
                 mimeType: file.type,
                 taskId
@@ -287,12 +283,11 @@ export async function deleteTaskAttachment(id: string) {
 
     try {
         // Delete from Supabase Storage
-        const urlParts = attachment.url.split('/storage/v1/object/public/uploads/')
-        if (urlParts.length > 1) {
-            const filePath = urlParts[1]
+        const storagePath = extractStoragePath(attachment.url)
+        if (storagePath) {
             await supabaseAdmin.storage
                 .from(STORAGE_BUCKET)
-                .remove([filePath])
+                .remove([storagePath])
         }
 
         await prisma.taskAttachment.delete({ where: { id } })
@@ -330,12 +325,11 @@ export async function deleteTask(id: string) {
     try {
         // Delete attachment files from Supabase Storage
         for (const att of task.attachments) {
-            const urlParts = att.url.split('/storage/v1/object/public/uploads/')
-            if (urlParts.length > 1) {
-                const filePath = urlParts[1]
+            const storagePath = extractStoragePath(att.url)
+            if (storagePath) {
                 await supabaseAdmin.storage
                     .from(STORAGE_BUCKET)
-                    .remove([filePath])
+                    .remove([storagePath])
             }
         }
 

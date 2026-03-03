@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { User, Shield, ShieldOff, UserCheck, UserX, Edit } from 'lucide-react'
+import { Shield, ShieldOff, UserCheck, UserX, Edit } from 'lucide-react'
 import { updateUserRole, toggleUserAdmin, toggleUserApproval } from '@/actions/user'
+import { UserAvatar } from '@/components/ui/UserAvatar'
 
 type UserData = {
     id: string
@@ -68,13 +69,7 @@ export function AdminUserList({ users, currentUserId }: { users: UserData[], cur
             {users.map((user) => (
                 <div key={user.id} className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                     <div className="flex items-center gap-4 w-full sm:w-auto">
-                        {user.image ? (
-                            <img src={user.image} alt={user.name || ''} className="w-12 h-12 rounded-full object-cover border-2 border-slate-200 dark:border-slate-700 flex-shrink-0" />
-                        ) : (
-                            <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center border-2 border-slate-200 dark:border-slate-700 flex-shrink-0">
-                                <User className="w-6 h-6 text-slate-400" />
-                            </div>
-                        )}
+                        <UserAvatar src={user.image} name={user.name} size={48} className="object-cover border-2 border-slate-200 dark:border-slate-700 flex-shrink-0" />
                         <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
                                 <span className="font-bold text-slate-900 dark:text-white truncate">{user.name || '이름 없음'}</span>

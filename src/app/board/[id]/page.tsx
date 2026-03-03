@@ -4,8 +4,10 @@ import { notFound } from 'next/navigation'
 import { getPost } from '@/actions/board'
 import { auth } from '@/auth'
 import { Navbar } from '@/components/layout'
-import { ArrowLeft, Clock, User, Pin, Megaphone, MessageSquare, FileText, BookOpen, Download, Music, Video } from 'lucide-react'
+import { ArrowLeft, Clock, Pin, Megaphone, MessageSquare, FileText, BookOpen, Download, Music, Video } from 'lucide-react'
 import { MedalBadge } from '@/components/ui/MedalBadge'
+import { UserAvatar } from '@/components/ui/UserAvatar'
+import { ChunkedDownloadButton } from '@/components/ui/ChunkedDownloadButton'
 import { formatDate } from '@/lib/utils'
 import { PostActions } from './PostActions'
 import { CommentSection } from './CommentSection'
@@ -132,13 +134,7 @@ export default async function PostPage({ params }: PostPageProps) {
                         {/* Meta */}
                         <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400 pb-6 border-b border-slate-100 dark:border-slate-800">
                             <div className="flex items-center gap-2">
-                                {post.author.image ? (
-                                    <img src={post.author.image} alt="" className="w-6 h-6 rounded-full" />
-                                ) : (
-                                    <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                                        <User className="w-3 h-3 text-slate-400" />
-                                    </div>
-                                )}
+                                <UserAvatar src={post.author.image} name={post.author.name} size={24} />
                                 <span className="font-medium">
                                     {post.author.name || '익명'}
                                     {' '}<MedalBadge medalPoints={(post.author as any).medalPoints || 0} size="sm" />
@@ -207,13 +203,11 @@ export default async function PostPage({ params }: PostPageProps) {
                                                                 {formatFileSize(file.size)}
                                                             </p>
                                                         </div>
-                                                        <a
-                                                            href={file.url}
-                                                            download
+                                                        <ChunkedDownloadButton
+                                                            url={file.url}
+                                                            filename={file.filename}
                                                             className="p-2 text-slate-400 hover:text-blue-600 transition-colors"
-                                                        >
-                                                            <Download className="w-4 h-4" />
-                                                        </a>
+                                                        />
                                                     </div>
                                                     <audio controls className="w-full" preload="metadata">
                                                         <source src={file.url} type={file.mimeType} />
@@ -239,13 +233,11 @@ export default async function PostPage({ params }: PostPageProps) {
                                                                 {formatFileSize(file.size)}
                                                             </p>
                                                         </div>
-                                                        <a
-                                                            href={file.url}
-                                                            download
+                                                        <ChunkedDownloadButton
+                                                            url={file.url}
+                                                            filename={file.filename}
                                                             className="p-2 text-slate-400 hover:text-blue-600 transition-colors"
-                                                        >
-                                                            <Download className="w-4 h-4" />
-                                                        </a>
+                                                        />
                                                     </div>
                                                     <video controls className="w-full rounded-lg" preload="metadata">
                                                         <source src={file.url} type={file.mimeType} />
@@ -257,26 +249,22 @@ export default async function PostPage({ params }: PostPageProps) {
 
                                         // 일반 파일인 경우
                                         return (
-                                            <a
-                                                key={file.id}
-                                                href={file.url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group"
-                                            >
-                                                <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                                                    <FileIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                            <ChunkedDownloadButton key={file.id} url={file.url} filename={file.filename}>
+                                                <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group cursor-pointer">
+                                                    <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                                                        <FileIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-medium text-slate-900 dark:text-white truncate text-sm">
+                                                            {file.filename}
+                                                        </p>
+                                                        <p className="text-xs text-slate-500">
+                                                            {formatFileSize(file.size)}
+                                                        </p>
+                                                    </div>
+                                                    <Download className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition-colors" />
                                                 </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="font-medium text-slate-900 dark:text-white truncate text-sm">
-                                                        {file.filename}
-                                                    </p>
-                                                    <p className="text-xs text-slate-500">
-                                                        {formatFileSize(file.size)}
-                                                    </p>
-                                                </div>
-                                                <Download className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition-colors" />
-                                            </a>
+                                            </ChunkedDownloadButton>
                                         )
                                     })}
                                 </div>

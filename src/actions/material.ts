@@ -4,10 +4,10 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { supabaseAdmin } from '@/lib/supabase'
-import { STORAGE_BUCKET } from '@/lib/storage-constants'
+import { STORAGE_BUCKET, getProxyUrl, extractStoragePath } from '@/lib/storage-constants'
 
 // Get all materials
-export async function getMaterials(category?: string, userId?: string, search?: string) {
+export async function getMaterials(category?: string, userId?: string, search?: string, unpartitioned?: boolean) {
     const where: any = {}
 
     if (category && category !== 'ALL') {
@@ -24,6 +24,11 @@ export async function getMaterials(category?: string, userId?: string, search?: 
             { description: { contains: search, mode: 'insensitive' } },
             { filename: { contains: search, mode: 'insensitive' } }
         ]
+    }
+
+    // For DATA/OTHER categories, filter to only unpartitioned materials
+    if (unpartitioned) {
+        where.partitionId = null
     }
 
     const materials = await prisma.material.findMany({
@@ -105,11 +110,6 @@ export async function uploadMaterial(formData: FormData) {
             return { error: "파일 업로드 중 오류가 발생했습니다." }
         }
 
-        // Get public URL
-        const { data: urlData } = supabaseAdmin.storage
-            .from(STORAGE_BUCKET)
-            .getPublicUrl(filePath)
-
         // Create database record
         await prisma.material.create({
             data: {
@@ -117,7 +117,7 @@ export async function uploadMaterial(formData: FormData) {
                 description: description || null,
                 category,
                 filename: file.name,
-                url: urlData.publicUrl,
+                url: getProxyUrl(filePath),
                 size: file.size,
                 mimeType: file.type,
                 uploaderId: session.user.id
@@ -155,13 +155,11 @@ export async function deleteMaterial(id: string) {
 
     try {
         // Delete from Supabase Storage
-        // Extract file path from URL
-        const urlParts = material.url.split('/storage/v1/object/public/uploads/')
-        if (urlParts.length > 1) {
-            const filePath = urlParts[1]
+        const storagePath = extractStoragePath(material.url)
+        if (storagePath) {
             await supabaseAdmin.storage
                 .from(STORAGE_BUCKET)
-                .remove([filePath])
+                .remove([storagePath])
         }
 
         // Delete database record

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { readFile } from 'fs/promises'
 import { join } from 'path'
-import { existsSync } from 'fs'
+import { existsSync, statSync, createReadStream } from 'fs'
+import { Readable } from 'stream'
 
 const UPLOAD_DIR = join(process.cwd(), 'uploads', 'workspace')
 
@@ -55,13 +55,17 @@ export async function GET(
     }
 
     try {
-        const fileBuffer = await readFile(filepath)
+        const stat = statSync(filepath)
+        const nodeStream = createReadStream(filepath)
+        const webStream = Readable.toWeb(nodeStream) as ReadableStream
 
-        return new NextResponse(fileBuffer, {
+        return new NextResponse(webStream, {
             headers: {
                 'Content-Type': resource.mimeType || 'application/octet-stream',
-                'Content-Disposition': `attachment; filename="${encodeURIComponent(resource.filename)}"`,
-                'Content-Length': String(resource.size || fileBuffer.length),
+                'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(resource.filename!)}`,
+                'Content-Length': String(resource.size || stat.size),
+                'Cache-Control': 'no-store, no-transform',
+                'X-Accel-Buffering': 'no',
             },
         })
     } catch (error) {

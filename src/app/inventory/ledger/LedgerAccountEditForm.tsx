@@ -11,6 +11,7 @@ interface Account {
     id: string
     section: string
     name: string
+    initialBalance: number
     balance: number
     description: string | null
 }
@@ -125,13 +126,13 @@ export function LedgerAccountEditForm({ account, existingSections = DEFAULT_SECT
 
             <div>
                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                    잔액 (원) <span className="text-red-500">*</span>
+                    초기 잔액 (원) <span className="text-red-500">*</span>
                 </label>
                 <input
                     type="number"
                     name="balance"
                     required
-                    defaultValue={account.balance}
+                    defaultValue={account.initialBalance}
                     className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                 />
             </div>

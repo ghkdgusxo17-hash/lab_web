@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { Session } from 'next-auth'
 import { NavbarClient } from '@/components/layout/NavbarClient'
 import { EventFormModal } from './EventFormModal'
-import { ChevronLeft, ChevronRight, Plus, Clock, Calendar as CalendarIcon, Edit2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Clock, Calendar as CalendarIcon, Edit2, TableProperties } from 'lucide-react'
+import Link from 'next/link'
 import { EVENT_CATEGORIES } from '@/lib/event-categories'
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토']
@@ -18,6 +19,7 @@ interface CalendarEvent {
     startTime: string
     endTime: string
     isAllDay: boolean
+    isImportant?: boolean
     color: string | null
     createdById: string
     createdBy: {
@@ -80,6 +82,25 @@ export function CalendarClientWithEvents({ session, events }: CalendarClientWith
         return selectedDate.getFullYear() === year && selectedDate.getMonth() === month && selectedDate.getDate() === day
     }
 
+    const hasImportantEvent = (day: number) => {
+        const date = new Date(year, month, day)
+        const dayEvents = getEventsForDate(date)
+        return dayEvents.some(e => e.isImportant)
+    }
+
+    const handleHoloMouseMove = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        const rect = e.currentTarget.getBoundingClientRect()
+        const mx = ((e.clientX - rect.left) / rect.width) * 100
+        const my = ((e.clientY - rect.top) / rect.height) * 100
+        e.currentTarget.style.setProperty('--mx', `${mx}%`)
+        e.currentTarget.style.setProperty('--my', `${my}%`)
+    }, [])
+
+    const handleHoloMouseLeave = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        e.currentTarget.style.setProperty('--mx', '50%')
+        e.currentTarget.style.setProperty('--my', '50%')
+    }, [])
+
     const selectedDateEvents = selectedDate ? getEventsForDate(selectedDate) : []
 
     const calendarDays: (number | null)[] = []
@@ -118,9 +139,18 @@ export function CalendarClientWithEvents({ session, events }: CalendarClientWith
                         <h1 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4 tracking-tight">
                             캘린더
                         </h1>
-                        <p className="text-lg text-slate-600 dark:text-slate-300">
-                            연구실의 주요 일정과 이벤트를 확인하세요
-                        </p>
+                        <div className="flex items-center gap-4">
+                            <p className="text-lg text-slate-600 dark:text-slate-300">
+                                연구실의 주요 일정과 이벤트를 확인하세요
+                            </p>
+                            <Link
+                                href="/timetable"
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors whitespace-nowrap"
+                            >
+                                <TableProperties className="w-4 h-4" />
+                                시간표
+                            </Link>
+                        </div>
                     </div>
 
                     <div className="grid lg:grid-cols-3 gap-8">
@@ -176,27 +206,53 @@ export function CalendarClientWithEvents({ session, events }: CalendarClientWith
                                     const date = new Date(year, month, day)
                                     const dayEvents = getEventsForDate(date)
                                     const dayOfWeek = date.getDay()
+                                    const isImportantDay = hasImportantEvent(day)
 
                                     return (
                                         <button
                                             key={day}
                                             onClick={() => setSelectedDate(date)}
+                                            onMouseMove={isImportantDay ? handleHoloMouseMove : undefined}
+                                            onMouseLeave={isImportantDay ? handleHoloMouseLeave : undefined}
                                             className={`relative min-h-[80px] p-1.5 rounded-xl transition-all duration-200 group flex flex-col ${isSelected(day)
                                                 ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 scale-[1.02] z-10'
                                                 : isToday(day)
                                                     ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 ring-2 ring-blue-500 ring-inset'
                                                     : 'hover:bg-slate-50 dark:hover:bg-slate-800'
-                                                }`}
+                                                } ${isImportantDay && !isSelected(day) ? 'holo-cell' : ''}`}
+                                            style={isImportantDay ? { '--mx': '50%', '--my': '50%' } as React.CSSProperties : undefined}
                                         >
+                                            {/* Holographic overlay */}
+                                            {isImportantDay && !isSelected(day) && (
+                                                <div className="absolute inset-0 rounded-xl overflow-hidden pointer-events-none">
+                                                    <div
+                                                        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                                                        style={{
+                                                            background: `radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(255,200,0,0.15), rgba(120,80,255,0.1), rgba(0,200,255,0.08), transparent 70%)`,
+                                                        }}
+                                                    />
+                                                    <div
+                                                        className="absolute inset-0 opacity-0 group-hover:opacity-60 transition-opacity duration-300"
+                                                        style={{
+                                                            background: `conic-gradient(from 0deg at var(--mx, 50%) var(--my, 50%), #ff000015, #ff800015, #ffff0015, #00ff0015, #0080ff15, #8000ff15, #ff000015)`,
+                                                            mixBlendMode: 'overlay',
+                                                        }}
+                                                    />
+                                                    <div className="absolute inset-0 rounded-xl ring-1 ring-amber-400/30 group-hover:ring-amber-400/60 transition-all" />
+                                                </div>
+                                            )}
                                             <span
-                                                className={`text-sm font-bold mb-1 ${!isSelected(day) && dayOfWeek === 0 ? 'text-red-500' :
+                                                className={`text-sm font-bold mb-1 relative z-10 ${!isSelected(day) && dayOfWeek === 0 ? 'text-red-500' :
                                                     !isSelected(day) && dayOfWeek === 6 ? 'text-blue-500' : ''
-                                                    }`}
+                                                    } ${isImportantDay && !isSelected(day) ? 'flex items-center gap-0.5' : ''}`}
                                             >
                                                 {day}
+                                                {isImportantDay && !isSelected(day) && (
+                                                    <span className="text-amber-500 text-[10px]">★</span>
+                                                )}
                                             </span>
                                             {dayEvents.length > 0 && (
-                                                <div className="flex-1 flex flex-col gap-0.5 w-full overflow-hidden">
+                                                <div className="flex-1 flex flex-col gap-0.5 w-full overflow-hidden relative z-10">
                                                     {dayEvents.slice(0, 2).map((event) => (
                                                         <div
                                                             key={event.id}
@@ -216,6 +272,22 @@ export function CalendarClientWithEvents({ session, events }: CalendarClientWith
                                         </button>
                                     )
                                 })}
+                            </div>
+
+                            {/* Legend */}
+                            <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                                    {Object.entries(EVENT_CATEGORIES).map(([key, { label, color }]) => (
+                                        <div key={key} className="flex items-center gap-1.5">
+                                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
+                                            <span className="text-[11px] text-slate-500 dark:text-slate-400">{label}</span>
+                                        </div>
+                                    ))}
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-amber-500 text-xs">★</span>
+                                        <span className="text-[11px] text-slate-500 dark:text-slate-400">중요 일정</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -250,7 +322,10 @@ export function CalendarClientWithEvents({ session, events }: CalendarClientWith
                                                     onClick={() => openEditModal(event)}
                                                 >
                                                     <div className="flex items-start justify-between mb-2">
-                                                        <h4 className="font-bold text-slate-900 dark:text-white">{event.title}</h4>
+                                                        <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                                            {event.title}
+                                                            {event.isImportant && <span className="text-amber-500 text-sm">★</span>}
+                                                        </h4>
                                                         <Edit2 className="w-4 h-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                                                     </div>
 

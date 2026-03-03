@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { supabaseAdmin } from '@/lib/supabase'
-import { STORAGE_BUCKET } from '@/lib/storage-constants'
+import { STORAGE_BUCKET, getProxyUrl } from '@/lib/storage-constants'
 import { Resource } from '@prisma/client'
 
 // Image Upload
@@ -35,11 +35,7 @@ export async function uploadResourceImage(formData: FormData) {
         return { error: "이미지 업로드 실패" }
     }
 
-    const { data: { publicUrl } } = supabaseAdmin.storage
-        .from(STORAGE_BUCKET)
-        .getPublicUrl(filePath)
-
-    return { success: true, url: publicUrl }
+    return { success: true, url: getProxyUrl(filePath) }
 }
 
 // Create Resource

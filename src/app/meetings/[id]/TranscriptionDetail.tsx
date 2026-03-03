@@ -25,7 +25,7 @@ interface Props {
 
 export function TranscriptionDetail({ transcription: initialTranscription }: Props) {
     const [transcription, setTranscription] = useState(initialTranscription)
-    const [showTranscript, setShowTranscript] = useState(false)
+    const [showTranscript, setShowTranscript] = useState(true)
     const [isPlaying, setIsPlaying] = useState(false)
     const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null)
 
@@ -55,9 +55,41 @@ export function TranscriptionDetail({ transcription: initialTranscription }: Pro
     }, [transcription.status, transcription.id])
 
     // Parse transcript segments
-    const segments: Segment[] = transcription.transcript
-        ? JSON.parse(transcription.transcript)?.segments || []
-        : []
+    const segments: Segment[] = (() => {
+        if (!transcription.transcript) return []
+        try {
+            const parsed = JSON.parse(transcription.transcript)
+
+            // 1. Try parsed.segments first
+            if (Array.isArray(parsed.segments) && parsed.segments.length > 0) {
+                return parsed.segments
+            }
+
+            // 2. Try raw_output (format: "assistant\n[{...}]")
+            if (parsed.raw_output) {
+                const idx = parsed.raw_output.indexOf('[')
+                if (idx >= 0) {
+                    try {
+                        return JSON.parse(parsed.raw_output.substring(idx))
+                    } catch {
+                        // raw_output might be truncated - extract what we can
+                        const partial = parsed.raw_output.substring(idx)
+                        // Find the last complete JSON object
+                        const lastComplete = partial.lastIndexOf('}')
+                        if (lastComplete > 0) {
+                            try {
+                                return JSON.parse(partial.substring(0, lastComplete + 1) + ']')
+                            } catch { /* fall through */ }
+                        }
+                    }
+                }
+            }
+
+            // 3. If parsed itself is an array
+            if (Array.isArray(parsed)) return parsed
+        } catch { /* fall through */ }
+        return []
+    })()
 
     // Group segments by speaker
     const speakerColors = [

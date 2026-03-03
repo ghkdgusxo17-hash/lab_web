@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { supabaseAdmin } from '@/lib/supabase'
-import { STORAGE_BUCKET } from '@/lib/storage-constants'
+import { STORAGE_BUCKET, getProxyUrl, extractStoragePath } from '@/lib/storage-constants'
 
 const TRANSCRIPTION_SERVICE_URL = process.env.TRANSCRIPTION_SERVICE_URL || 'http://localhost:8000'
 
@@ -104,30 +104,24 @@ export async function getTranscriptions() {
     return transcriptions
 }
 
-// Create transcription (upload audio and start processing)
-export async function createTranscription(formData: FormData) {
+// Create transcription from pre-uploaded audio file
+// Audio is already uploaded to Supabase via /api/upload/audio - only filePath is passed here
+export async function createTranscription(data: { materialId: string; filePath: string; originalFilename: string }) {
     console.log('[Transcription] Starting createTranscription...')
     const session = await auth()
 
     if (!session?.user) {
-        console.log('[Transcription] No session')
         return { error: "로그인이 필요합니다." }
     }
 
     if (!session.user.isApproved && !session.user.isAdmin) {
-        console.log('[Transcription] User not approved')
         return { error: "승인된 멤버만 사용할 수 있습니다." }
     }
 
-    const materialId = formData.get('materialId') as string
-    const audioFile = formData.get('audioFile') as File
+    const { materialId, filePath, originalFilename } = data
 
-    console.log('[Transcription] materialId:', materialId)
-    console.log('[Transcription] audioFile:', audioFile?.name, audioFile?.size)
-
-    if (!materialId || !audioFile) {
-        console.log('[Transcription] Missing materialId or audioFile')
-        return { error: "발표자료와 오디오 파일을 선택해주세요." }
+    if (!materialId || !filePath) {
+        return { error: "발표자료와 오디오 파일 경로가 필요합니다." }
     }
 
     // Check if material exists
@@ -143,7 +137,6 @@ export async function createTranscription(formData: FormData) {
     // Allow re-upload if previous transcription failed
     if (material.transcription) {
         if (material.transcription.status === 'FAILED') {
-            // Delete the failed transcription to allow retry
             await prisma.meetingTranscription.delete({
                 where: { id: material.transcription.id }
             })
@@ -152,66 +145,31 @@ export async function createTranscription(formData: FormData) {
         }
     }
 
-    // Validate audio file type
-    const allowedTypes = ['audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/m4a', 'audio/x-m4a', 'audio/flac', 'audio/ogg', 'audio/webm']
-    if (!allowedTypes.some(type => audioFile.type.includes(type.split('/')[1]))) {
-        return { error: "지원하지 않는 오디오 형식입니다. (mp3, wav, m4a, flac, ogg, webm)" }
-    }
-
     try {
-        // Upload audio to Supabase Storage
-        console.log('[Transcription] Starting upload to Supabase...')
-        const timestamp = Date.now()
-        const safeName = audioFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')
-        const filename = `${timestamp}_${safeName}`
-        const filePath = `transcriptions/${filename}`
-
-        console.log('[Transcription] Converting file to buffer...')
-        const bytes = await audioFile.arrayBuffer()
-        const buffer = Buffer.from(bytes)
-        console.log('[Transcription] Buffer size:', buffer.length)
-
-        console.log('[Transcription] Uploading to Supabase storage...')
-        const { error: uploadError } = await supabaseAdmin.storage
-            .from(STORAGE_BUCKET)
-            .upload(filePath, buffer, {
-                contentType: audioFile.type,
-                upsert: true,
-            })
-
-        if (uploadError) {
-            console.error('[Transcription] Supabase upload error:', uploadError)
-            return { error: "오디오 파일 업로드 중 오류가 발생했습니다." }
-        }
-        console.log('[Transcription] Upload successful!')
-
-        // Get public URL
+        // Get direct Supabase URL for server-side transcription job
         const { data: urlData } = supabaseAdmin.storage
             .from(STORAGE_BUCKET)
             .getPublicUrl(filePath)
 
-        // Create transcription record
-        console.log('[Transcription] Creating database record...')
+        // Create transcription record (proxy URL for frontend access)
         const transcription = await prisma.meetingTranscription.create({
             data: {
                 materialId,
-                audioUrl: urlData.publicUrl,
-                audioFilename: audioFile.name,
+                audioUrl: getProxyUrl(filePath),
+                audioFilename: originalFilename,
                 status: 'PENDING',
                 recorderId: session.user.id,
                 recorderName: session.user.name || '알 수 없음'
             }
         })
-        console.log('[Transcription] Database record created:', transcription.id)
+        console.log('[Transcription] DB record created:', transcription.id)
 
-        // Call transcription service (async, don't wait)
-        console.log('[Transcription] Starting transcription job...')
+        // Start transcription job with direct Supabase URL (server-side, fast)
         startTranscriptionJob(transcription.id, urlData.publicUrl).catch(err => {
             console.error('Failed to start transcription job:', err)
         })
 
         revalidatePath('/meetings')
-        console.log('[Transcription] Done! Returning success.')
         return { success: true, transcriptionId: transcription.id }
     } catch (error) {
         console.error('Create transcription error:', error)
@@ -234,27 +192,41 @@ async function startTranscriptionJob(transcriptionId: string, audioUrl: string) 
             throw new Error('Failed to download audio file')
         }
 
-        const audioBlob = await audioResponse.blob()
-        const formData = new FormData()
-        formData.append('file', audioBlob, 'audio.mp3')
+        const audioBuffer = await audioResponse.arrayBuffer()
 
-        // Call transcription service with extended timeout (30 minutes for model loading + processing)
+        // Build multipart body manually (undici FormData has Blob compatibility issues)
+        const boundary = `----FormBoundary${Date.now()}`
+        const header = Buffer.from(
+            `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="audio.mp3"\r\nContent-Type: audio/mpeg\r\n\r\n`
+        )
+        const footer = Buffer.from(`\r\n--${boundary}--\r\n`)
+        const body = Buffer.concat([header, Buffer.from(audioBuffer), footer])
+
+        // Use undici for custom header/body timeouts (default fetch has 30s header timeout)
+        const { request: undiciRequest } = await import('undici')
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), 30 * 60 * 1000)
 
-        const response = await fetch(`${TRANSCRIPTION_SERVICE_URL}/process`, {
+        const response = await undiciRequest(`${TRANSCRIPTION_SERVICE_URL}/process`, {
             method: 'POST',
-            body: formData,
-            signal: controller.signal
+            headers: {
+                'Content-Type': `multipart/form-data; boundary=${boundary}`,
+                'Content-Length': String(body.length),
+            },
+            body,
+            signal: controller.signal,
+            headersTimeout: 30 * 60 * 1000,
+            bodyTimeout: 30 * 60 * 1000,
         })
 
         clearTimeout(timeoutId)
 
-        if (!response.ok) {
-            throw new Error(`Transcription service error: ${response.status}`)
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+            const errorBody = await response.body.text()
+            throw new Error(`Transcription service error: ${response.statusCode} - ${errorBody}`)
         }
 
-        const result = await response.json()
+        const result = await response.body.json() as { job_id: string }
 
         // Update with job ID
         await prisma.meetingTranscription.update({
@@ -382,12 +354,11 @@ export async function deleteTranscription(transcriptionId: string) {
 
     try {
         // Delete audio from Supabase Storage
-        const urlParts = transcription.audioUrl.split('/storage/v1/object/public/uploads/')
-        if (urlParts.length > 1) {
-            const filePath = urlParts[1]
+        const storagePath = extractStoragePath(transcription.audioUrl)
+        if (storagePath) {
             await supabaseAdmin.storage
                 .from(STORAGE_BUCKET)
-                .remove([filePath])
+                .remove([storagePath])
         }
 
         // Delete database record

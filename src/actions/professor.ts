@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { revalidatePath } from 'next/cache'
 import { supabaseAdmin } from '@/lib/supabase'
-import { STORAGE_BUCKET } from '@/lib/storage-constants'
+import { STORAGE_BUCKET, getProxyUrl } from '@/lib/storage-constants'
 
 // Types for education and career entries
 export interface EducationEntry {
@@ -211,10 +211,7 @@ export async function uploadProfessorImage(formData: FormData): Promise<{ succes
             return { success: false, error: '이미지 업로드 중 오류가 발생했습니다.' }
         }
 
-        // Get public URL
-        const { data: urlData } = supabaseAdmin.storage
-            .from(STORAGE_BUCKET)
-            .getPublicUrl(filePath)
+        const proxyUrl = getProxyUrl(filePath)
 
         // Delete old image if exists
         const oldInfo = await prisma.professorInfo.findUnique({
@@ -223,25 +220,28 @@ export async function uploadProfessorImage(formData: FormData): Promise<{ succes
         })
 
         if (oldInfo?.profileImage) {
-            const parts = oldInfo.profileImage.split(`/storage/v1/object/public/${STORAGE_BUCKET}/`)
-            if (parts.length > 1) {
+            // Handle both old direct URLs and new proxy URLs
+            const directParts = oldInfo.profileImage.split(`/storage/v1/object/public/${STORAGE_BUCKET}/`)
+            const proxyParts = oldInfo.profileImage.split(`/api/storage/${STORAGE_BUCKET}/`)
+            const oldPath = directParts.length > 1 ? directParts[1] : proxyParts.length > 1 ? proxyParts[1] : null
+            if (oldPath) {
                 await supabaseAdmin.storage
                     .from(STORAGE_BUCKET)
-                    .remove([parts[1]])
+                    .remove([oldPath])
             }
         }
 
         // Update professor info with new image URL
         await prisma.professorInfo.upsert({
             where: { id: 'main' },
-            update: { profileImage: urlData.publicUrl },
-            create: { id: 'main', profileImage: urlData.publicUrl }
+            update: { profileImage: proxyUrl },
+            create: { id: 'main', profileImage: proxyUrl }
         })
 
         revalidatePath('/professor')
         revalidatePath('/admin')
 
-        return { success: true, url: urlData.publicUrl }
+        return { success: true, url: proxyUrl }
     } catch (error) {
         console.error('Failed to upload professor image:', error)
         return { success: false, error: '이미지 업로드에 실패했습니다.' }
