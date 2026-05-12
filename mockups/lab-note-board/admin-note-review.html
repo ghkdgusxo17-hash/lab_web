@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>관리자 승인 화면 목업 | 선배들의 한마디</title>
+    <link rel="stylesheet" href="./base.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <div class="topbar">
+        <div class="topbar-title">Admin Review Mockup</div>
+        <a class="topbar-link" href="./index.html">목업 모음으로 돌아가기</a>
+      </div>
+
+      <h1 class="page-title">관리자 승인 화면</h1>
+      <p class="page-subtitle">
+        멤버가 남긴 메모를 공개 전에 가볍게 검토하는 화면입니다. 너무 센 표현이나 내부적인 디테일은 여기서 걸러내고,
+        공개 톤에 맞게 다듬는 흐름을 상상했습니다.
+      </p>
+
+      <section class="section-grid section">
+        <article class="panel">
+          <div class="panel-inner">
+            <h2 class="section-heading">승인 대기 메모</h2>
+            <p class="section-copy">
+              중요한 건 삭제보다 조율입니다. 너무 딱딱하거나 너무 센 문장이라도, “이 톤으로 조금만 부드럽게 바꿔주세요”가
+              가능하면 더 좋습니다.
+            </p>
+
+            <div class="moderation-list">
+              <div class="moderation-item">
+                <div class="moderation-top">
+                  <div>
+                    <strong>석사 2년차 · 56자</strong>
+                    <div class="helper">제출 5분 전 · 카테고리: 랩실 생활</div>
+                  </div>
+                  <span class="pill pill-wait">대기 중</span>
+                </div>
+                <p class="note-text" style="font-size: 18px; margin-top: 14px;">
+                  교수님 피드백은 빡세지만 지나고 나면 확실히 방향이 잡혀요 ㅎㅎ
+                </p>
+                <div class="moderation-actions">
+                  <button class="btn-tiny btn-accept">승인</button>
+                  <button class="btn-tiny btn-hold">보류</button>
+                  <button class="btn-tiny btn-revise">“빡세다” 표현 완화 요청</button>
+                </div>
+              </div>
+
+              <div class="moderation-item">
+                <div class="moderation-top">
+                  <div>
+                    <strong>학부연구생 · 44자</strong>
+                    <div class="helper">제출 12분 전 · 카테고리: 진로</div>
+                  </div>
+                  <span class="pill pill-ok">승인 추천</span>
+                </div>
+                <p class="note-text" style="font-size: 18px; margin-top: 14px;">
+                  여기서 한 경험은 나중에 면접에서 얘기하기 좋은 재료가 됩니다.
+                </p>
+                <div class="moderation-actions">
+                  <button class="btn-tiny btn-accept">승인</button>
+                  <button class="btn-tiny btn-hold">보류</button>
+                  <button class="btn-tiny btn-revise">끝 문장만 조금 더 부드럽게</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <div class="stack">
+          <div class="mini-card">
+            <h3>운영 규칙 제안</h3>
+            <ul>
+              <li>1인 1메모, 수정은 가능</li>
+              <li>공개 전 관리자 승인 필수</li>
+              <li>실명보다 역할명 노출 권장</li>
+              <li>교수님 관련 농담은 가볍고 안전하게</li>
+            </ul>
+          </div>
+
+          <div class="mini-card">
+            <h3>좋은 메모의 기준</h3>
+            <div class="chips">
+              <span class="chip">짧다</span>
+              <span class="chip">부담이 없다</span>
+              <span class="chip">진짜 같다</span>
+              <span class="chip">신뢰를 해치지 않는다</span>
+            </div>
+          </div>
+
+          <div class="mini-card">
+            <h3>공개 보드 예상 모습</h3>
+            <div class="board" style="min-height: 310px;">
+              <div class="note-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));">
+                <article class="note note-green" style="--tilt: -3deg;">
+                  <span class="note-role">승인 완료</span>
+                  <p class="note-text" style="font-size: 17px;">AI 관심 있으면 꽤 반가워하실 가능성 큽니다.</p>
+                  <p class="note-meta">공개 예정</p>
+                </article>
+                <article class="note note-pink" style="--tilt: 2deg;">
+                  <span class="note-role">수정 요청</span>
+                  <p class="note-text" style="font-size: 17px;">표현만 조금 부드럽게 다듬으면 바로 공개 가능.</p>
+                  <p class="note-meta">관리 메모</p>
+                </article>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,14 @@
+services:
+  onlyoffice-documentserver:
+    image: onlyoffice/documentserver:latest
+    container_name: labweb_onlyoffice
+    restart: unless-stopped
+    ports:
+      - "9892:80"
+    environment:
+      JWT_ENABLED: "true"
+      JWT_SECRET: ${ONLYOFFICE_JWT_SECRET}
+      JWT_HEADER: Authorization
+      JWT_IN_BODY: "true"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

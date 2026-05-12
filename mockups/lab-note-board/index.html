@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>랩실 메모 보드 목업 모음</title>
+    <link rel="stylesheet" href="./base.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <div class="topbar">
+        <div class="topbar-title">Mockup Folder</div>
+        <a class="topbar-link" href="../">상위 폴더 보기</a>
+      </div>
+
+      <section class="hero">
+        <span class="hero-badge">선배 메모 보드 아이디어 정리</span>
+        <h1>“선배들의 한마디” 기능을 보기 쉽게 HTML 목업으로 묶어둔 폴더</h1>
+        <p>
+          공식 소개보다 조금 더 사람 냄새 나고, 학부생이 “여기 분위기 괜찮은데?”라고 느끼게 만드는 보드를 상상하고
+          구성한 화면안입니다. 공개용 보드, 멤버 작성 화면, 관리자 승인 화면으로 나눠봤어요.
+        </p>
+
+        <div class="meta-strip">
+          <div class="meta-card">
+            <span class="meta-label">기능 이름</span>
+            <span class="meta-value">선배들의 한마디</span>
+          </div>
+          <div class="meta-card">
+            <span class="meta-label">핵심 컨셉</span>
+            <span class="meta-value">큰 판 + 포스트잇 메모</span>
+          </div>
+          <div class="meta-card">
+            <span class="meta-label">운영 방식</span>
+            <span class="meta-value">1인 1메모 · 60자 제한 · 승인 공개</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="overview-grid">
+        <article class="overview-card">
+          <span class="hero-badge">Public View</span>
+          <h3>공개 보드</h3>
+          <p>
+            학부생이 보게 될 메인 노출 화면입니다. 메모가 랜덤하게 붙어 있는 느낌으로, 공식 소개보다 부드럽게 분위기를
+            전달합니다.
+          </p>
+          <div class="mini-board">
+            <div class="mini-note">교수님 질문은 무섭다기보다 진지한 편이에요 ㅎㅎ</div>
+          </div>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="./public-note-board.html">공개 화면 보기</a>
+          </div>
+        </article>
+
+        <article class="overview-card">
+          <span class="hero-badge">Member Studio</span>
+          <h3>멤버 작성 화면</h3>
+          <p>
+            랩 소속 학생이 짧은 글을 남기는 화면입니다. 글자 제한, 작성 팁, 보드 미리보기를 함께 둬서 톤을 맞추게
+            했습니다.
+          </p>
+          <div class="mini-board">
+            <div class="mini-note" style="background: linear-gradient(180deg, #dff4ff, #bfe8ff); transform: rotate(3deg);">
+              42 / 60자
+              <br />
+              미리보기 같이 보이기
+            </div>
+          </div>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="./member-note-studio.html">작성 화면 보기</a>
+          </div>
+        </article>
+
+        <article class="overview-card">
+          <span class="hero-badge">Admin Review</span>
+          <h3>관리자 승인 화면</h3>
+          <p>
+            공개 전에 메모를 보고 승인, 보류, 수정 요청을 하는 화면입니다. 너무 내부 썰스럽거나 톤이 센 문구를 여기서
+            걸러낼 수 있습니다.
+          </p>
+          <div class="mini-board">
+            <div class="mini-note" style="background: linear-gradient(180deg, #eefaff, #d5f3ff); transform: rotate(-2deg);">
+              승인
+              <br />
+              보류
+              <br />
+              수정 요청
+            </div>
+          </div>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="./admin-note-review.html">관리 화면 보기</a>
+          </div>
+        </article>
+      </section>
+    </div>
+  </body>
+</html>

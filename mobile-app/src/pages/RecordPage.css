@@ -1,0 +1,265 @@
+/* Record Page - Apple-inspired design */
+.record-page {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px;
+    padding-top: 80px;
+    background: var(--bg);
+    position: relative;
+}
+
+/* Close Button */
+.close-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 32px;
+    height: 32px;
+    border-radius: 16px;
+    background: var(--separator);
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+}
+
+/* Record Info */
+.record-info {
+    text-align: center;
+    margin-bottom: 48px;
+}
+
+.record-info .label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-tertiary);
+    margin-bottom: 4px;
+    letter-spacing: -0.08px;
+}
+
+.record-info .title {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.45px;
+}
+
+/* Timer Area */
+.timer-area {
+    margin-bottom: 32px;
+}
+
+.timer-circle {
+    width: 220px;
+    height: 220px;
+    border-radius: 110px;
+    background: var(--bg-elevated);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid var(--separator);
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.timer-circle.active {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 8px rgba(255, 59, 48, 0.1), var(--shadow-lg);
+}
+
+.timer-text {
+    font-family: var(--font-mono);
+    font-size: 48px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    letter-spacing: -1px;
+}
+
+.recording-dot {
+    position: absolute;
+    top: 32px;
+    width: 10px;
+    height: 10px;
+    background: var(--danger);
+    border-radius: 5px;
+    animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.9); }
+}
+
+/* Audio Level Indicator */
+.audio-level-container {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.audio-level-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 32px;
+}
+
+.audio-level-bar {
+    width: 10px;
+    height: 100%;
+    border-radius: 3px;
+    transition: background-color 0.1s ease, opacity 0.1s ease;
+}
+
+.audio-level-label {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    letter-spacing: -0.08px;
+}
+
+/* Error Message */
+.error-message {
+    color: var(--danger);
+    text-align: center;
+    font-size: 15px;
+    margin-bottom: 16px;
+    padding: 0 20px;
+    font-weight: 500;
+}
+
+/* Status Message */
+.status-message {
+    font-size: 17px;
+    color: var(--text-tertiary);
+    margin-bottom: 48px;
+    letter-spacing: -0.41px;
+}
+
+/* Controls */
+.controls {
+    min-height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Record Button */
+.record-btn {
+    width: 72px;
+    height: 72px;
+    border-radius: 36px;
+    background: var(--danger);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(255, 59, 48, 0.35);
+    transition: all 0.2s ease;
+}
+
+.record-btn:hover {
+    box-shadow: 0 6px 20px rgba(255, 59, 48, 0.45);
+}
+
+.record-btn:active {
+    transform: scale(0.95);
+}
+
+.record-inner {
+    width: 28px;
+    height: 28px;
+    background: white;
+    border-radius: 14px;
+}
+
+/* Control Row */
+.control-row {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+}
+
+/* Control Button */
+.control-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    font-size: 13px;
+    color: var(--text-tertiary);
+    letter-spacing: -0.08px;
+}
+
+.control-btn span:first-child {
+    font-size: 28px;
+}
+
+/* Stop Button */
+.stop-btn {
+    width: 64px;
+    height: 64px;
+    border-radius: 32px;
+    background: var(--danger);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(255, 59, 48, 0.35);
+}
+
+.stop-inner {
+    width: 22px;
+    height: 22px;
+    background: white;
+    border-radius: 4px;
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.action-buttons .btn {
+    min-width: 120px;
+}
+
+/* Uploading State */
+.uploading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.uploading p {
+    font-size: 15px;
+    color: var(--text-tertiary);
+}
+
+/* Hint */
+.hint {
+    position: fixed;
+    bottom: 48px;
+    left: 24px;
+    right: 24px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-quaternary);
+    letter-spacing: -0.08px;
+}
+
+/* Safe area */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .hint {
+        bottom: calc(48px + env(safe-area-inset-bottom));
+    }
+}

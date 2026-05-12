@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>멤버 작성 화면 목업 | 선배들의 한마디</title>
+    <link rel="stylesheet" href="./base.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <div class="topbar">
+        <div class="topbar-title">Member Studio Mockup</div>
+        <a class="topbar-link" href="./index.html">목업 모음으로 돌아가기</a>
+      </div>
+
+      <h1 class="page-title">멤버 작성 화면</h1>
+      <p class="page-subtitle">
+        랩실 소속 학생이 짧은 메모를 남기는 화면입니다. 입력하면서 바로 보드 미리보기가 같이 바뀌게 해서, 톤과 길이를
+        감각적으로 맞추는 흐름을 상상했습니다.
+      </p>
+
+      <section class="form-grid section">
+        <article class="card">
+          <h2 class="section-heading">메모 작성</h2>
+          <p class="section-copy">
+            너무 길지 않게, 너무 내부적인 말은 빼고, 학부생이 보고 “아 여긴 이런 느낌이구나”라고 느끼게 적는 방식입니다.
+          </p>
+
+          <div class="field section">
+            <label for="role">표시 역할</label>
+            <select id="role" class="select">
+              <option>석사 1년차</option>
+              <option>석사 2년차</option>
+              <option>박사과정</option>
+              <option>학부연구생</option>
+              <option>졸업생</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <div class="field-row">
+              <label for="noteText">코멘트</label>
+              <div class="counter"><strong id="countValue">42</strong> / 60자</div>
+            </div>
+            <textarea id="noteText" class="textarea">교수님 질문은 긴장되지만, 방향 잡히면 오히려 편해집니다 ㅎㅎ</textarea>
+            <p class="helper">
+              팁: “무섭다”보다 “진지하다”, “힘들다”보다 “생각보다 금방 적응한다”처럼 부드럽게 바꾸면 공개 보드에 더 잘
+              맞습니다.
+            </p>
+          </div>
+
+          <div class="field">
+            <label for="tone">권장 톤 체크</label>
+            <div class="toolbar">
+              <span class="chip">짧고 솔직하게</span>
+              <span class="chip">너무 내부 얘기 금지</span>
+              <span class="chip">유머는 가능</span>
+              <span class="chip">비방은 금지</span>
+            </div>
+          </div>
+
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#">관리자 승인 요청</a>
+            <a class="btn btn-secondary" href="#">임시 저장</a>
+          </div>
+        </article>
+
+        <article class="card preview-board">
+          <h2 class="section-heading">보드 미리보기</h2>
+          <p class="section-copy">
+            실제 공개 화면에서 어떻게 보일지 바로 확인하는 영역입니다. 글자가 너무 길거나 딱딱하면 여기서 바로 티가 나게
+            했습니다.
+          </p>
+
+          <div class="board section">
+            <div class="note preview-note note-blue" id="previewNote" style="--tilt: -3deg;">
+              <span class="note-role" id="previewRole">석사 1년차</span>
+              <p class="note-text" id="previewText">교수님 질문은 긴장되지만, 방향 잡히면 오히려 편해집니다 ㅎㅎ</p>
+              <p class="note-meta">실시간 미리보기 · 42자</p>
+            </div>
+          </div>
+        </article>
+      </section>
+    </div>
+
+    <script>
+      const textarea = document.getElementById('noteText');
+      const roleSelect = document.getElementById('role');
+      const previewText = document.getElementById('previewText');
+      const previewRole = document.getElementById('previewRole');
+      const countValue = document.getElementById('countValue');
+
+      function syncPreview() {
+        const nextText = textarea.value.slice(0, 60);
+        textarea.value = nextText;
+        previewText.textContent = nextText || '여기에 선배 한마디가 들어갑니다.';
+        previewRole.textContent = roleSelect.value;
+        countValue.textContent = String(nextText.length);
+      }
+
+      textarea.addEventListener('input', syncPreview);
+      roleSelect.addEventListener('change', syncPreview);
+      syncPreview();
+    </script>
+  </body>
+</html>
