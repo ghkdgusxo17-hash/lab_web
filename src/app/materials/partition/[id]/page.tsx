@@ -122,6 +122,7 @@ export default async function PartitionDetailPage({ params }: { params: Promise<
                             파일 목록 ({partition.materials.length})
                         </h2>
                         <PartitionMaterialList
+                            partitionId={partition.id}
                             materials={partition.materials}
                             currentUserId={session.user.id}
                             isAdmin={session.user.isAdmin}

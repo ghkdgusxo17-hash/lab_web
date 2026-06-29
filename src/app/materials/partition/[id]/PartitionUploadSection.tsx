@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Upload, FileText, X, ChevronDown, ChevronUp } from 'lucide-react'
-import { uploadPartitionMaterial } from '@/actions/material-partition'
+import { uploadFileInChunks } from '@/lib/chunked-upload'
 
 interface Props {
     partitionId: string
@@ -17,6 +17,7 @@ export function PartitionUploadSection({ partitionId }: Props) {
     const [title, setTitle] = useState('')
     const [description, setDescription] = useState('')
     const [file, setFile] = useState<File | null>(null)
+    const [progress, setProgress] = useState(0)
 
     function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
         const selectedFile = e.target.files?.[0]
@@ -60,21 +61,24 @@ export function PartitionUploadSection({ partitionId }: Props) {
         }
 
         setLoading(true)
+        setProgress(0)
 
-        const formData = new FormData()
-        formData.set('title', title)
-        formData.set('description', description)
-        formData.set('file', file)
-
-        const result = await uploadPartitionMaterial(partitionId, formData)
-
-        if (result.error) {
-            alert(result.error)
-            setLoading(false)
-        } else {
+        try {
+            await uploadFileInChunks({
+                file,
+                partitionId,
+                title,
+                description,
+                onProgress: setProgress,
+            })
             resetForm()
             setLoading(false)
+            setProgress(0)
             router.refresh()
+        } catch (error) {
+            alert(error instanceof Error ? error.message : '업로드 중 오류가 발생했습니다.')
+            setLoading(false)
+            setProgress(0)
         }
     }
 
@@ -172,12 +176,28 @@ export function PartitionUploadSection({ partitionId }: Props) {
                         />
                     </div>
 
+                    {/* Progress */}
+                    {loading && (
+                        <div>
+                            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                                <div
+                                    className="h-full rounded-full bg-blue-600 transition-all duration-200"
+                                    style={{ width: `${progress}%` }}
+                                />
+                            </div>
+                            <p className="mt-1 text-xs text-slate-500">
+                                {progress < 100 ? `업로드 중... ${progress}%` : '마무리 중...'}
+                            </p>
+                        </div>
+                    )}
+
                     {/* Submit */}
                     <div className="flex justify-end gap-2">
                         <button
                             type="button"
                             onClick={resetForm}
-                            className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-medium transition-colors"
+                            disabled={loading}
+                            className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             취소
                         </button>
@@ -186,7 +206,7 @@ export function PartitionUploadSection({ partitionId }: Props) {
                             disabled={loading || !file}
                             className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                         >
-                            {loading ? '업로드 중...' : '업로드'}
+                            {loading ? `업로드 중... ${progress}%` : '업로드'}
                         </button>
                     </div>
                 </form>

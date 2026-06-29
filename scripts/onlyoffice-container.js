@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const { spawnSync } = require('child_process')
+const http = require('http')
 const fs = require('fs')
 const path = require('path')
 
@@ -9,6 +10,14 @@ const ENV_FILE = '.env.onlyoffice'
 const COMPOSE_FILE = 'docker-compose.onlyoffice.yml'
 const SERVICE_NAME = 'onlyoffice-documentserver'
 const CONTAINER_NAME = 'labweb_onlyoffice'
+
+// 문서 서버는 컨테이너가 떠도 내부 예열(postgres/rabbitmq/converter)에 30~90초가 더 걸린다.
+// up -d 직후 곧바로 문서를 열면 이 예열 창에서 변환이 느리거나 재시도되므로,
+// /healthcheck 가 실제로 응답할 때까지 기다린 뒤 서버 기동을 끝낸다.
+const HEALTHCHECK_URL =
+  process.env.ONLYOFFICE_HEALTHCHECK_URL || 'http://127.0.0.1:9892/healthcheck'
+const HEALTHCHECK_TIMEOUT_MS = Number(process.env.ONLYOFFICE_HEALTHCHECK_TIMEOUT_MS || 150000)
+const HEALTHCHECK_INTERVAL_MS = 2000
 
 function logInfo(message) {
   console.log(`[ONLYOFFICE] ${message}`)
@@ -52,7 +61,49 @@ function relayOutput(result) {
   }
 }
 
-function ensureOnlyOffice() {
+function checkHealthOnce() {
+  return new Promise((resolve) => {
+    const req = http.get(HEALTHCHECK_URL, (res) => {
+      let body = ''
+      res.on('data', (chunk) => {
+        body += chunk
+      })
+      res.on('end', () => {
+        resolve(res.statusCode === 200 && body.trim().toLowerCase().includes('true'))
+      })
+    })
+
+    req.on('error', () => resolve(false))
+    req.setTimeout(3000, () => {
+      req.destroy()
+      resolve(false)
+    })
+  })
+}
+
+async function waitForHealthy() {
+  const deadline = Date.now() + HEALTHCHECK_TIMEOUT_MS
+  let warned = false
+
+  while (Date.now() < deadline) {
+    if (await checkHealthOnce()) {
+      logInfo('문서 서버가 응답을 시작했습니다. (준비 완료)')
+      return true
+    }
+
+    if (!warned) {
+      logInfo('문서 서버 예열을 기다리는 중입니다... (최초 기동 시 30~90초 소요될 수 있습니다)')
+      warned = true
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, HEALTHCHECK_INTERVAL_MS))
+  }
+
+  logInfo('예열 대기 시간이 초과되어 계속 진행합니다. 첫 문서 열람이 잠시 느릴 수 있습니다.')
+  return false
+}
+
+async function ensureOnlyOffice() {
   logInfo('문서 서버를 확인하고 필요하면 자동으로 시작합니다.')
 
   const composeResult = runDocker([
@@ -68,6 +119,7 @@ function ensureOnlyOffice() {
 
   if (composeResult.status === 0) {
     relayOutput(composeResult)
+    await waitForHealthy()
     return
   }
 
@@ -89,6 +141,8 @@ function ensureOnlyOffice() {
   if (startResult.status !== 0) {
     exitWithError(`docker start ${CONTAINER_NAME} exited with code ${startResult.status}`)
   }
+
+  await waitForHealthy()
 }
 
 function stopOnlyOffice() {
@@ -127,7 +181,7 @@ function removeOnlyOffice() {
   }
 }
 
-try {
+async function main() {
   ensureRequiredFiles()
 
   const command = process.argv[2] || 'ensure'
@@ -135,24 +189,26 @@ try {
   if (command === 'ensure') {
     if (process.env.SKIP_ONLYOFFICE_AUTO_START === '1') {
       logInfo('자동 시작을 건너뜁니다. (SKIP_ONLYOFFICE_AUTO_START=1)')
-      process.exit(0)
+      return
     }
 
-    ensureOnlyOffice()
-    process.exit(0)
+    await ensureOnlyOffice()
+    return
   }
 
   if (command === 'stop') {
     stopOnlyOffice()
-    process.exit(0)
+    return
   }
 
   if (command === 'down') {
     removeOnlyOffice()
-    process.exit(0)
+    return
   }
 
   exitWithError(`지원하지 않는 명령입니다: ${command}`)
-} catch (error) {
-  exitWithError(error.message)
 }
+
+main()
+  .then(() => process.exit(0))
+  .catch((error) => exitWithError(error.message))

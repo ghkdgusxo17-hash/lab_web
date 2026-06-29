@@ -18,10 +18,11 @@ async function getAuthorizedMaterial(materialId: string, request: NextRequest) {
       mimeType: true,
       url: true,
       labMeetingId: true,
+      partitionId: true,
     },
   })
 
-  if (!material?.labMeetingId) {
+  if (!material || (!material.labMeetingId && !material.partitionId)) {
     return { error: NextResponse.json({ error: 'Material not found' }, { status: 404 }), material: null }
   }
 

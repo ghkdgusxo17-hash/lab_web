@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronDown, ChevronUp, FileText, Plus, Upload, X } from 'lucide-react'
-import { uploadLabMeetingMaterial } from '@/actions/lab-meeting'
+import { uploadLabMeetingMaterialChunked } from '@/lib/chunked-upload'
 
 const categories = [
     { value: 'PPT', label: 'PPT/발표자료' },
@@ -35,6 +35,7 @@ export function MaterialUploadSection({ labMeetingId, presenters = [] }: Props) 
     const [file, setFile] = useState<File | null>(null)
     const [referenceFiles, setReferenceFiles] = useState<File[]>([])
     const [isDragging, setIsDragging] = useState(false)
+    const [progress, setProgress] = useState(0)
 
     function applyMainFile(selectedFile: File) {
         setFile(selectedFile)
@@ -111,26 +112,27 @@ export function MaterialUploadSection({ labMeetingId, presenters = [] }: Props) 
         }
 
         setLoading(true)
+        setProgress(0)
 
-        const formData = new FormData()
-        formData.set('title', title)
-        formData.set('description', description)
-        formData.set('category', category)
-        formData.set('presenterId', presenterId)
-        formData.set('file', file)
-        referenceFiles.forEach((referenceFile) => {
-            formData.append('referenceFiles', referenceFile)
-        })
-
-        const result = await uploadLabMeetingMaterial(labMeetingId, formData)
-
-        if (result.error) {
-            alert(result.error)
-            setLoading(false)
-        } else {
+        try {
+            await uploadLabMeetingMaterialChunked({
+                labMeetingId,
+                file,
+                referenceFiles,
+                title,
+                description,
+                category,
+                presenterId,
+                onProgress: setProgress,
+            })
             resetForm()
             setLoading(false)
+            setProgress(0)
             router.refresh()
+        } catch (error) {
+            alert(error instanceof Error ? error.message : '업로드 중 오류가 발생했습니다.')
+            setLoading(false)
+            setProgress(0)
         }
     }
 
@@ -334,11 +336,26 @@ export function MaterialUploadSection({ labMeetingId, presenters = [] }: Props) 
                         />
                     </div>
 
+                    {loading && (
+                        <div>
+                            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                                <div
+                                    className="h-full rounded-full bg-blue-600 transition-all duration-200"
+                                    style={{ width: `${progress}%` }}
+                                />
+                            </div>
+                            <p className="mt-1 text-xs text-slate-500">
+                                {progress < 100 ? `업로드 중... ${progress}%` : '마무리 중...'}
+                            </p>
+                        </div>
+                    )}
+
                     <div className="flex justify-end gap-2">
                         <button
                             type="button"
                             onClick={resetForm}
-                            className="px-4 py-2 font-medium text-slate-600 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                            disabled={loading}
+                            className="px-4 py-2 font-medium text-slate-600 transition-colors hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-400 dark:hover:text-white"
                         >
                             취소
                         </button>
@@ -347,7 +364,7 @@ export function MaterialUploadSection({ labMeetingId, presenters = [] }: Props) 
                             disabled={loading || !file}
                             className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-all hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                            {loading ? '업로드 중...' : '업로드'}
+                            {loading ? `업로드 중... ${progress}%` : '업로드'}
                         </button>
                     </div>
                 </form>

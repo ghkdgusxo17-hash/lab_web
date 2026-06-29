@@ -1,10 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { FileText, Download, Trash2, User, FolderOpen } from 'lucide-react'
+import { FileText, Download, Eye, Trash2, User, FolderOpen } from 'lucide-react'
 import { ChunkedDownloadButton } from '@/components/ui/ChunkedDownloadButton'
 import { deletePartitionMaterial } from '@/actions/material-partition'
+import { isOnlyOfficeViewable } from '@/lib/onlyoffice-shared'
 
 interface Material {
     id: string
@@ -23,6 +25,7 @@ interface Material {
 }
 
 interface Props {
+    partitionId: string
     materials: Material[]
     currentUserId: string
     isAdmin: boolean
@@ -44,7 +47,7 @@ function formatDate(date: Date): string {
     })
 }
 
-export function PartitionMaterialList({ materials, currentUserId, isAdmin }: Props) {
+export function PartitionMaterialList({ partitionId, materials, currentUserId, isAdmin }: Props) {
     const router = useRouter()
     const [deletingId, setDeletingId] = useState<string | null>(null)
 
@@ -77,6 +80,7 @@ export function PartitionMaterialList({ materials, currentUserId, isAdmin }: Pro
         <div className="space-y-3">
             {materials.map((material) => {
                 const canDelete = material.uploader.id === currentUserId || isAdmin
+                const canView = isOnlyOfficeViewable(material.filename, material.mimeType)
 
                 return (
                     <div
@@ -114,6 +118,15 @@ export function PartitionMaterialList({ materials, currentUserId, isAdmin }: Pro
                                 </div>
                             </div>
                             <div className="flex items-center gap-1">
+                                {canView && (
+                                    <Link
+                                        href={`/materials/partition/${partitionId}/materials/${material.id}/viewer`}
+                                        className="p-2 text-slate-500 hover:text-cyan-600 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 rounded-lg transition-colors"
+                                        title="보기"
+                                    >
+                                        <Eye className="w-5 h-5" />
+                                    </Link>
+                                )}
                                 <ChunkedDownloadButton
                                     url={material.url}
                                     filename={material.filename}
