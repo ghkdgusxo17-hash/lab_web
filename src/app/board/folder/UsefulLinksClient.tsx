@@ -68,15 +68,7 @@ export function UsefulLinksClient({
     const [isPending, startTransition] = useTransition()
     const dropdownRef = useRef<HTMLDivElement>(null)
 
-    const filteredCategoryOptions = useMemo(() => {
-        const normalized = category.trim().toLowerCase()
-        if (!normalized) {
-            return categoryOptions
-        }
-        return categoryOptions.filter((item) =>
-            item.toLowerCase().includes(normalized)
-        )
-    }, [category, categoryOptions])
+
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -123,6 +115,16 @@ export function UsefulLinksClient({
 
         return Array.from(labels.values())
     }, [links])
+
+    const filteredCategoryOptions = useMemo(() => {
+        const normalized = category.trim().toLowerCase()
+        if (!normalized) {
+            return categoryOptions
+        }
+        return categoryOptions.filter((item) =>
+            item.toLowerCase().includes(normalized)
+        )
+    }, [category, categoryOptions])
 
     const filteredLinks = useMemo(() => {
         const normalizedQuery = query.trim().toLowerCase()
