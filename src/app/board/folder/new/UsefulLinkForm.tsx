@@ -62,7 +62,7 @@ function saveLocalLink(link: UsefulLinkItem) {
 export function UsefulLinkForm({ currentUserId, currentUserName, isLocalPreview }: UsefulLinkFormProps) {
     const router = useRouter()
     const [error, setError] = useState<string | null>(null)
-    const [categoryValue, setCategoryValue] = useState('GENERAL')
+    const [categoryValue, setCategoryValue] = useState('')
     const [isOpen, setIsOpen] = useState(false)
     const [isPending, startTransition] = useTransition()
     const dropdownRef = useRef<HTMLDivElement>(null)
