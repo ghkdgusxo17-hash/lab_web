@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { ExternalLink, Link as LinkIcon, Search, Trash2 } from 'lucide-react'
+import { ChevronDown, ExternalLink, Link as LinkIcon, Search, Trash2 } from 'lucide-react'
 import { deleteUsefulLink, UsefulLinkItem } from '@/actions/useful-link'
 
 const LOCAL_STORAGE_KEY = 'cpe-lab-useful-links'
@@ -157,28 +157,20 @@ export function UsefulLinksClient({
                         className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
                     />
                 </div>
-                <div className="flex w-full md:min-w-0 md:flex-1 items-center gap-2 overflow-hidden">
-                    <input
+                <div className="relative w-full md:w-48">
+                    <select
                         value={category}
                         onChange={(event) => setCategory(event.target.value)}
-                        placeholder="카테고리 입력"
-                        className="shrink-0 w-36 md:w-44 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    />
-                    <div className="flex min-w-0 flex-1 md:justify-end gap-2 overflow-x-auto pb-1 md:pb-0">
-                    {[{ value: '', label: 'ALL' }, ...categoryOptions.map((item) => ({ value: item, label: item }))].map((item) => (
-                        <button
-                            key={item.value}
-                            type="button"
-                            onClick={() => setCategory(item.value)}
-                            className={`shrink-0 h-9 px-3 text-sm font-medium rounded-lg border transition-colors whitespace-nowrap ${category === item.value
-                                ? 'border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
-                                : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                                }`}
-                        >
-                            {item.label}
-                        </button>
-                    ))}
-                    </div>
+                        className="w-full pl-3 pr-10 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none cursor-pointer"
+                    >
+                        <option value="">카테고리 전체 (ALL)</option>
+                        {categoryOptions.map((item) => (
+                            <option key={item} value={item}>
+                                {item}
+                            </option>
+                        ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                 </div>
             </div>
 
