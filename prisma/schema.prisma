@@ -90,6 +90,7 @@ model User {
   // Google Calendar (구글 캘린더 연동)
   googleCalendars    GoogleCalendarSync[]
   labNote            LabNote?
+  usefulLinks        UsefulLink[] @relation("UsefulLinkAuthor")
 }
 
 model Account {
@@ -543,6 +544,22 @@ model LabNote {
 
 // ============ Publications (논문 및 특허) ============
 // Valid values for publicationType: JOURNAL, CONFERENCE, PATENT, BOOK
+
+model UsefulLink {
+  id          String   @id @default(cuid())
+  title       String
+  url         String
+  description String?
+  category    String   @default("GENERAL")
+  authorId    String?
+  author      User?    @relation("UsefulLinkAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  authorName  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([createdAt])
+}
 
 model Publication {
   id          String   @id @default(cuid())

@@ -2,7 +2,7 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 import { getPosts } from '@/actions/board'
 import { Navbar } from '@/components/layout'
-import { Plus, Megaphone, MessageSquare, BookOpen, Pin } from 'lucide-react'
+import { Plus, Megaphone, MessageSquare, BookOpen, Pin, Folder } from 'lucide-react'
 import { auth } from "@/auth"
 
 export const dynamic = 'force-dynamic'
@@ -31,10 +31,11 @@ interface BoardPageProps {
 }
 
 const BOARD_TYPES = [
-    { key: '', label: '전체', icon: null },
+    { key: '', label: '전체', icon: null, href: '/board' },
     { key: 'NOTICE', label: '공지사항', icon: Megaphone, color: 'text-red-600' },
     { key: 'SEMINAR', label: '세미나', icon: BookOpen, color: 'text-purple-600' },
     { key: 'FREE', label: '자유게시판', icon: MessageSquare, color: 'text-blue-600' },
+    { key: 'FOLDER', label: 'Useful Links', icon: Folder, color: 'text-amber-600', href: '/board/folder' },
 ]
 
 function formatDate(date: Date) {
@@ -92,11 +93,11 @@ export default async function BoardPage({ searchParams }: BoardPageProps) {
                     {/* Board Container */}
                     <div className="bg-white dark:bg-slate-900 t-rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                         {/* Tabs */}
-                        <div className="flex border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                        <div className="flex overflow-x-auto border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
                             {BOARD_TYPES.map((t) => (
                                 <Link
                                     key={t.key}
-                                    href={t.key ? `/board?type=${t.key}` : '/board'}
+                                    href={t.href || `/board?type=${t.key}`}
                                     className={`px-6 py-3.5 text-sm font-medium transition-colors border-b-2 -mb-px ${type === t.key
                                         ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-900'
                                         : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
