@@ -50,8 +50,8 @@ export default async function BoardFolderPage() {
                         )}
                     </div>
 
-                    <div className="bg-white dark:bg-slate-900 t-rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                        <div className="flex overflow-x-auto border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                    <div className="bg-white dark:bg-slate-900 t-rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                        <div className="flex overflow-x-auto rounded-t-[var(--radius-xl)] border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
                             {BOARD_LINKS.map((link) => {
                                 const Icon = link.icon
 
