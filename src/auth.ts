@@ -7,7 +7,33 @@ import type { JWT } from "next-auth/jwt"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 
+function hasDatabaseUrl() {
+    return Boolean(process.env.REAL_DATABASE_URL)
+}
+
+function shouldSkipAuthLocally() {
+    return process.env.LOCAL_SKIP_AUTH === "true" && process.env.NODE_ENV !== "production"
+}
+
+const localPreviewSession = {
+    user: {
+        id: "local-preview-user",
+        name: "Local Preview",
+        email: "local-preview@example.com",
+        image: null,
+        role: "BS",
+        isAdmin: false,
+        isApproved: true,
+        medalPoints: 0,
+    },
+    expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+}
+
 async function syncTokenUser(token: JWT) {
+    if (!hasDatabaseUrl()) {
+        return token
+    }
+
     const userId =
         typeof token.id === "string" && token.id
             ? token.id
@@ -59,7 +85,7 @@ async function syncTokenUser(token: JWT) {
     }
 }
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+const nextAuth = NextAuth({
     adapter: PrismaAdapter(prisma) as Adapter,
     session: {
         strategy: "jwt",
@@ -76,6 +102,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 password: { label: "Password", type: "password" },
             },
             async authorize(credentials) {
+                if (!hasDatabaseUrl()) {
+                    return null
+                }
+
                 if (!credentials?.email || !credentials?.password) {
                     return null
                 }
@@ -142,3 +172,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         signIn: "/login",
     },
 })
+
+export const { handlers, signIn, signOut } = nextAuth
+
+export async function auth() {
+    if (shouldSkipAuthLocally()) {
+        return localPreviewSession as any
+    }
+
+    return nextAuth.auth()
+}

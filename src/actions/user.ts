@@ -9,11 +9,19 @@ import { getRequestRateLimitKey } from "@/lib/request-rate-limit"
 import bcrypt from "bcryptjs"
 import { revalidatePath } from "next/cache"
 
+function hasDatabaseUrl() {
+    return Boolean(process.env.REAL_DATABASE_URL)
+}
+
 export async function signOutAction() {
     await signOut({ redirectTo: "/" })
 }
 
 export async function signInWithCredentials(formData: FormData) {
+    if (!hasDatabaseUrl()) {
+        return { error: "로컬 미리보기에서 로그인하려면 REAL_DATABASE_URL 설정이 필요합니다." }
+    }
+
     const email = String(formData.get("email") ?? "").trim()
     const password = String(formData.get("password") ?? "")
 
@@ -48,6 +56,10 @@ export async function signInWithCredentials(formData: FormData) {
 }
 
 export async function registerUser(formData: FormData) {
+    if (!hasDatabaseUrl()) {
+        return { error: "로컬 미리보기에서 회원가입하려면 REAL_DATABASE_URL 설정이 필요합니다." }
+    }
+
     const name = String(formData.get("name") ?? "").trim()
     const email = String(formData.get("email") ?? "").trim()
     const password = String(formData.get("password") ?? "")

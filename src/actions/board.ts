@@ -7,6 +7,10 @@ import { redirect } from "next/navigation"
 
 // Get all posts
 export async function getPosts(type?: string) {
+    if (!process.env.REAL_DATABASE_URL) {
+        return []
+    }
+
     const where = type ? { type } : {}
 
     const posts = await prisma.post.findMany({
@@ -32,6 +36,10 @@ export async function getPosts(type?: string) {
 
 // Get single post with comments, attachments, and poll
 export async function getPost(id: string) {
+    if (!process.env.REAL_DATABASE_URL) {
+        return null
+    }
+
     const post = await prisma.post.findUnique({
         where: { id },
         include: {

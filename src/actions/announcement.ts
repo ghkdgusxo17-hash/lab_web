@@ -6,6 +6,10 @@ import { auth } from '@/auth'
 
 // Get all active announcements
 export async function getActiveAnnouncements() {
+    if (!process.env.REAL_DATABASE_URL) {
+        return []
+    }
+
     const now = new Date()
 
     const announcements = await prisma.announcement.findMany({
