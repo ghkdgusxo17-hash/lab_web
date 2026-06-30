@@ -3,7 +3,7 @@
 import { FormEvent, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Upload } from 'lucide-react'
+import { ArrowLeft, ChevronDown, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
@@ -62,7 +62,7 @@ function saveLocalLink(link: UsefulLinkItem) {
 export function UsefulLinkForm({ currentUserId, currentUserName, isLocalPreview }: UsefulLinkFormProps) {
     const router = useRouter()
     const [error, setError] = useState<string | null>(null)
-    const [categoryValue, setCategoryValue] = useState('')
+    const [categoryValue, setCategoryValue] = useState('GENERAL')
     const [isPending, startTransition] = useTransition()
 
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -147,28 +147,19 @@ export function UsefulLinkForm({ currentUserId, currentUserName, isLocalPreview 
                         <label htmlFor="category" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                             카테고리
                         </label>
-                        <input
-                            id="category"
-                            name="category"
-                            value={categoryValue}
-                            onChange={(event) => setCategoryValue(event.target.value)}
-                            placeholder="카테고리 입력"
-                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        />
-                        <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
-                            {['REFERENCE', 'TOOL', 'GENERAL'].map((item) => (
-                                <button
-                                    key={item}
-                                    type="button"
-                                    onClick={() => setCategoryValue(item)}
-                                    className={`shrink-0 h-7 px-2.5 rounded-md border text-xs font-medium transition-colors ${categoryValue.trim().toUpperCase() === item
-                                        ? 'border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
-                                        : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                                        }`}
-                                >
-                                    {item}
-                                </button>
-                            ))}
+                        <div className="relative">
+                            <select
+                                id="category"
+                                name="category"
+                                value={categoryValue}
+                                onChange={(event) => setCategoryValue(event.target.value)}
+                                className="w-full pl-4 pr-10 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none cursor-pointer"
+                            >
+                                <option value="GENERAL">GENERAL</option>
+                                <option value="REFERENCE">REFERENCE</option>
+                                <option value="TOOL">TOOL</option>
+                            </select>
+                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                         </div>
                     </div>
                 </div>
