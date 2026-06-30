@@ -1,9 +1,9 @@
 'use client'
 
-import { FormEvent, useState, useTransition } from 'react'
+import { FormEvent, useState, useTransition, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Upload } from 'lucide-react'
+import { ArrowLeft, ChevronDown, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
@@ -63,7 +63,24 @@ export function UsefulLinkForm({ currentUserId, currentUserName, isLocalPreview 
     const router = useRouter()
     const [error, setError] = useState<string | null>(null)
     const [categoryValue, setCategoryValue] = useState('')
+    const [isOpen, setIsOpen] = useState(false)
     const [isPending, startTransition] = useTransition()
+    const dropdownRef = useRef<HTMLDivElement>(null)
+
+    const ALL_CATEGORIES = ['GENERAL', 'REFERENCE', 'TOOL']
+    const filteredCategories = ALL_CATEGORIES.filter((cat) =>
+        cat.toLowerCase().includes(categoryValue.toLowerCase())
+    )
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false)
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [])
 
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault()
@@ -147,28 +164,53 @@ export function UsefulLinkForm({ currentUserId, currentUserName, isLocalPreview 
                         <label htmlFor="category" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                             카테고리
                         </label>
-                        <input
-                            id="category"
-                            name="category"
-                            value={categoryValue}
-                            onChange={(event) => setCategoryValue(event.target.value)}
-                            placeholder="카테고리 입력"
-                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        />
-                        <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
-                            {['REFERENCE', 'TOOL', 'GENERAL'].map((item) => (
-                                <button
-                                    key={item}
-                                    type="button"
-                                    onClick={() => setCategoryValue(item)}
-                                    className={`shrink-0 h-7 px-2.5 rounded-md border text-xs font-medium transition-colors ${categoryValue.trim().toUpperCase() === item
-                                        ? 'border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
-                                        : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                                        }`}
-                                >
-                                    {item}
-                                </button>
-                            ))}
+                        <div ref={dropdownRef} className="relative">
+                            <input
+                                id="category"
+                                name="category"
+                                type="text"
+                                value={categoryValue}
+                                onChange={(event) => {
+                                    setCategoryValue(event.target.value)
+                                    setIsOpen(true)
+                                }}
+                                onFocus={() => setIsOpen(true)}
+                                placeholder="카테고리 선택 또는 입력"
+                                className="w-full pl-4 pr-10 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-slate-100 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                autoComplete="off"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setIsOpen(!isOpen)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 focus:outline-none hover:text-slate-600 dark:hover:text-slate-300"
+                            >
+                                <ChevronDown className="w-4 h-4" />
+                            </button>
+
+                            {isOpen && (
+                                <ul className="absolute z-10 w-full mt-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg max-h-60 overflow-y-auto py-1">
+                                    {filteredCategories.length > 0 ? (
+                                        filteredCategories.map((item) => (
+                                            <li key={item}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setCategoryValue(item)
+                                                        setIsOpen(false)
+                                                    }}
+                                                    className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                                >
+                                                    {item}
+                                                </button>
+                                            </li>
+                                        ))
+                                    ) : (
+                                        <li className="px-4 py-2.5 text-sm text-slate-500 dark:text-slate-400 italic">
+                                            &ldquo;{categoryValue}&rdquo; 카테고리 새로 만들기
+                                        </li>
+                                    )}
+                                </ul>
+                            )}
                         </div>
                     </div>
                 </div>
