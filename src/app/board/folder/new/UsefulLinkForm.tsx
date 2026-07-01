@@ -20,17 +20,17 @@ interface UsefulLinkFormProps {
 function normalizeCategoryLabel(value: string) {
     const normalized = value.trim().replace(/\s+/g, ' ').toUpperCase()
     const aliases: Record<string, string> = {
-        GENERAL: 'GENERAL',
-        REFERENCE: 'REFERENCE',
-        REFERANCE: 'REFERENCE',
-        RESEARCH: 'REFERENCE',
-        LITERATURE: 'REFERENCE',
-        TOOL: 'TOOL',
-        TOOLS: 'TOOL',
-        CODE: 'TOOL',
+        GENERAL: 'General',
+        REFERENCE: 'Research',
+        REFERANCE: 'Research',
+        RESEARCH: 'Research',
+        LITERATURE: 'Research',
+        TOOL: 'Tool',
+        TOOLS: 'Tool',
+        CODE: 'Tool',
     }
 
-    return aliases[normalized] || normalized || 'GENERAL'
+    return aliases[normalized] || normalized || 'General'
 }
 
 function normalizeUrl(value: string) {
@@ -67,7 +67,7 @@ export function UsefulLinkForm({ currentUserId, currentUserName, isLocalPreview 
     const [isPending, startTransition] = useTransition()
     const dropdownRef = useRef<HTMLDivElement>(null)
 
-    const ALL_CATEGORIES = ['GENERAL', 'REFERENCE', 'TOOL']
+    const ALL_CATEGORIES = ['General', 'Research', 'Tool']
     const filteredCategories = ALL_CATEGORIES.filter((cat) =>
         cat.toLowerCase().includes(categoryValue.toLowerCase())
     )
@@ -93,7 +93,7 @@ export function UsefulLinkForm({ currentUserId, currentUserName, isLocalPreview 
             const rawUrl = String(formData.get('url') ?? '').trim()
             const title = String(formData.get('title') ?? '').trim()
             const description = String(formData.get('description') ?? '').trim()
-            const category = normalizeCategoryLabel(String(formData.get('category') ?? 'GENERAL'))
+            const category = normalizeCategoryLabel(String(formData.get('category') ?? 'General'))
             const authorName = currentUserName || 'Local Preview'
 
             if (!rawUrl) {

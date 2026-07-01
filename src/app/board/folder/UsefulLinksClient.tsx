@@ -7,7 +7,7 @@ import { deleteUsefulLink, UsefulLinkItem } from '@/actions/useful-link'
 
 const LOCAL_STORAGE_KEY = 'cpe-lab-useful-links'
 
-const FIXED_CATEGORIES = ['REFERENCE', 'TOOL', 'GENERAL']
+const FIXED_CATEGORIES = ['Research', 'Tool', 'General']
 
 interface UsefulLinksClientProps {
     initialLinks: UsefulLinkItem[]
@@ -18,17 +18,17 @@ interface UsefulLinksClientProps {
 
 function getCategoryLabel(value: string) {
     const aliases: Record<string, string> = {
-        GENERAL: 'GENERAL',
-        REFERENCE: 'REFERENCE',
-        REFERANCE: 'REFERENCE',
-        RESEARCH: 'REFERENCE',
-        LITERATURE: 'REFERENCE',
-        PREPRINT: 'REFERENCE',
-        WRITING: 'REFERENCE',
-        JOURNAL: 'REFERENCE',
-        TOOL: 'TOOL',
-        TOOLS: 'TOOL',
-        CODE: 'TOOL',
+        GENERAL: 'General',
+        REFERENCE: 'Research',
+        REFERANCE: 'Research',
+        RESEARCH: 'Research',
+        LITERATURE: 'Research',
+        PREPRINT: 'Research',
+        WRITING: 'Research',
+        JOURNAL: 'Research',
+        TOOL: 'Tool',
+        TOOLS: 'Tool',
+        CODE: 'Tool',
     }
 
     return aliases[value.toUpperCase()] || value

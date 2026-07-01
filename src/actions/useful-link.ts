@@ -33,20 +33,20 @@ function titleFromUrl(url: string) {
 function normalizeCategory(value: string) {
     const normalized = value.trim().replace(/\s+/g, ' ').toUpperCase()
     const aliases: Record<string, string> = {
-        GENERAL: 'GENERAL',
-        REFERENCE: 'REFERENCE',
-        REFERANCE: 'REFERENCE',
-        RESEARCH: 'REFERENCE',
-        LITERATURE: 'REFERENCE',
-        PREPRINT: 'REFERENCE',
-        WRITING: 'REFERENCE',
-        JOURNAL: 'REFERENCE',
-        TOOL: 'TOOL',
-        TOOLS: 'TOOL',
-        CODE: 'TOOL',
+        GENERAL: 'General',
+        REFERENCE: 'Research',
+        REFERANCE: 'Research',
+        RESEARCH: 'Research',
+        LITERATURE: 'Research',
+        PREPRINT: 'Research',
+        WRITING: 'Research',
+        JOURNAL: 'Research',
+        TOOL: 'Tool',
+        TOOLS: 'Tool',
+        CODE: 'Tool',
     }
 
-    return aliases[normalized] || normalized || 'GENERAL'
+    return aliases[normalized] || normalized || 'General'
 }
 
 function formatUsefulLink(link: {
@@ -79,79 +79,79 @@ function getLocalPreviewLinks(): UsefulLinkItem[] {
             title: 'Google Scholar',
             url: 'https://scholar.google.com/',
             description: '논문 검색과 인용 확인할 때 쓰기 좋습니다.',
-            category: 'REFERENCE',
+            category: 'Research',
         },
         {
             title: 'PubMed',
             url: 'https://pubmed.ncbi.nlm.nih.gov/',
             description: '바이오/의학 분야 논문을 빠르게 찾을 수 있습니다.',
-            category: 'REFERENCE',
+            category: 'Research',
         },
         {
             title: 'arXiv',
             url: 'https://arxiv.org/',
             description: '프리프린트와 최신 연구 동향 확인용입니다.',
-            category: 'REFERENCE',
+            category: 'Research',
         },
         {
             title: 'Semantic Scholar',
             url: 'https://www.semanticscholar.org/',
             description: '관련 논문을 이어서 찾을 때 편합니다.',
-            category: 'REFERENCE',
+            category: 'Research',
         },
         {
             title: 'Overleaf',
             url: 'https://www.overleaf.com/',
             description: '공동 LaTeX 작성과 논문 템플릿 관리에 좋습니다.',
-            category: 'TOOL',
+            category: 'Tool',
         },
         {
             title: 'Zotero',
             url: 'https://www.zotero.org/',
             description: '논문 레퍼런스 정리와 citation 관리용입니다.',
-            category: 'REFERENCE',
+            category: 'Research',
         },
         {
             title: 'GitHub',
             url: 'https://github.com/',
             description: '코드 공유와 프로젝트 이슈 관리에 사용합니다.',
-            category: 'TOOL',
+            category: 'Tool',
         },
         {
             title: 'NCBI',
             url: 'https://www.ncbi.nlm.nih.gov/',
             description: '데이터베이스와 생물정보 자료 확인용입니다.',
-            category: 'REFERENCE',
+            category: 'Research',
         },
         {
             title: 'DeepL',
             url: 'https://www.deepl.com/translator',
             description: '영문 초안 점검과 빠른 번역 테스트용입니다.',
-            category: 'TOOL',
+            category: 'Tool',
         },
         {
             title: 'Nature',
             url: 'https://www.nature.com/',
             description: '저널 기사와 최신 연구 뉴스 확인용입니다.',
-            category: 'GENERAL',
+            category: 'General',
         },
         {
             title: 'Scopus',
             url: 'https://www.scopus.com/',
             description: 'Abstract and citation database for literature checks.',
-            category: 'REFERENCE',
+            category: 'Research',
         },
         {
             title: 'Web of Science',
             url: 'https://www.webofscience.com/',
             description: 'Citation search and journal trend checks.',
-            category: 'REFERENCE',
+            category: 'Research',
         },
         {
             title: 'ORCID',
             url: 'https://orcid.org/',
             description: 'Researcher profile and author identifier management.',
-            category: 'GENERAL',
+            category: 'General',
         },
         {
             title: 'ChatGPT',
@@ -187,13 +187,13 @@ function getLocalPreviewLinks(): UsefulLinkItem[] {
             title: 'Notion',
             url: 'https://www.notion.so/',
             description: 'Shared notes, project pages, and lab wiki testing.',
-            category: 'TOOL',
+            category: 'Tool',
         },
         {
             title: 'Google Drive',
             url: 'https://drive.google.com/',
             description: 'Shared file and folder organization reference.',
-            category: 'TOOL',
+            category: 'Tool',
         },
         {
             title: 'Google Patents',
@@ -267,7 +267,7 @@ export async function createUsefulLink(formData: FormData) {
     const title = String(formData.get('title') ?? '').trim()
     const rawUrl = String(formData.get('url') ?? '').trim()
     const description = String(formData.get('description') ?? '').trim()
-    const category = normalizeCategory(String(formData.get('category') ?? 'GENERAL'))
+    const category = normalizeCategory(String(formData.get('category') ?? 'General'))
     const authorName = String(formData.get('authorName') ?? '').trim() || session.user.name || null
 
     if (!rawUrl) {
